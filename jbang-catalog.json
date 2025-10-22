@@ -1,7 +1,7 @@
 {
   "aliases": {
     "analyzer": {
-      "script-ref": "https://github.com/quintesse/leyden-analyzer/releases/latest/download/leyden-analyzer-1.0.0-SNAPSHOT-runner.jar",
+      "script-ref": "https://github.com/Delawen/leyden-analyzer/releases/latest/download/leyden-analyzer-1.0.0-SNAPSHOT-runner.jar",
       "java": "21"
     }
   }
