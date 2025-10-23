@@ -1,11 +1,12 @@
 # This workflow will build and create a release when a tag starting with "v" is pushed
-
 name: ci-release
 
 on:
   push:
     tags:
       - "v*"
+    tags-ignore:
+      - '*-dev'
 
 jobs:
   build:
@@ -35,4 +36,4 @@ jobs:
         make_latest: true
         prerelease: false
         generate_release_notes: true
-        draft: true
+        draft: false

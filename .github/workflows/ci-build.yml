@@ -1,12 +1,10 @@
 # This workflow will build and upload a runner jar to keep around for 7 days
-
 name: ci-build
 
 on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build:
