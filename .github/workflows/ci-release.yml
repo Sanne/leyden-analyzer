@@ -3,10 +3,10 @@ name: ci-release
 
 on:
   push:
-    tags:
-      - "v*"
     tags-ignore:
       - '*-dev'
+    branches-ignore:
+      - '*'
 
 jobs:
   build:

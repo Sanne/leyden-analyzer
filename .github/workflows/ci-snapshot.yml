@@ -31,6 +31,7 @@ jobs:
       run: mvn -B package -Dquarkus.package.jar.type=uber-jar --file pom.xml
       
     - name: Find older snapshot tags
+      id: find-older-tags
       uses: ubuntu-latest
       run: echo 'TAGS=['$(git tag -l "*dev" | xargs | sed -e 's/ /,/g')']' >> $GITHUB_OUTPUT
 
@@ -38,7 +39,7 @@ jobs:
       uses: ClementTsang/delete-tag-and-release@v0.3.1
       strategy:
         matrix:
-          tag: ${{ fromJSON(TAGS) }}
+          tag: ${{ fromJSON(steps.find-older-tags.outputs.TAGS) }}
       with:
         delete_release: true
         tag_name: ${{ matrix.tag }}
@@ -46,8 +47,9 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: set release name
+      id: set-release-name
       run: |
-        echo "RELEASE_DATE=$(date +"%Y.%m.%d")" >> ${GITHUB_ENV}
+        echo "RELEASE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_OUTPUT
 
     - name: Publish Snapshot
       uses: softprops/action-gh-release@v2
@@ -55,5 +57,5 @@ jobs:
         files: target/*-runner.jar
         prerelease: true
         generate_release_notes: false
-        tag_name: v.${{ RELEASE_DATE }}-dev
+        tag_name: v.${{ steps.set-release-name.outputs.RELEASE_DATE }}-dev
         token: ${{ secrets.RELEASE }}
