@@ -46,19 +46,23 @@ jobs:
   find-older-snapshots:
     needs: build
     runs-on: ubuntu-latest
+
+    outputs:
+      tags: ${{ steps.find-older-tags.outputs.tags }}
+
     steps:
     - uses: actions/checkout@v4
-      
+
     - name: Find older snapshot tags
       id: find-older-tags
-      run: echo 'TAGS=['$(git tag -l "*dev" | grep -v $(date +"%Y.%m.%d")  | xargs | sed -e 's/ /,/g')']' >> $GITHUB_OUTPUT
+      run: echo 'tags=['$(git tag -l "*dev" | grep -v $(date +"%Y.%m.%d")  | xargs | sed -e 's/ /,/g')']' >> $GITHUB_OUTPUT
 
   remove-older-snapshots:
     needs: find-older-snapshots
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tag: ${{ fromJSON(needs.find-older-tags.outputs.TAGS) }}
+        tag: ${{ fromJSON(needs.find-older-tags.outputs.tags) }}
     steps:
     - name: Remove older snapshot tags and releases
       uses: ClementTsang/delete-tag-and-release@v0.3.1
