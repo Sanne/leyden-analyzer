@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tag: ${{ fromJSON(steps.find-older-tags.outputs.TAGS) }}
+        tag: ${{ fromJSON(needs.find-older-tags.outputs.TAGS) }}
     steps:
     - name: Remove older snapshot tags and releases
       uses: ClementTsang/delete-tag-and-release@v0.3.1
