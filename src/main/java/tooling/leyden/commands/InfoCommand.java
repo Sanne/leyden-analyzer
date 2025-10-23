@@ -222,23 +222,23 @@ class InfoCommand implements Runnable {
 //		});
 
 
-		(new AttributedString("Adapters: ", AttributedStyle.DEFAULT)).println(parent.getTerminal());
-		(new AttributedString("  -> AdapterFingerPrint: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-		(new AttributedString(
-				intFormat.format(
-						parent.getInformation()
-								.getElements(null, null, null, true, false, "AdapterFingerPrint")
-								.count()), greenFormat)).println(parent.getTerminal());
-		(new AttributedString("  -> AdapterHandlerEntry: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-		(new AttributedString(
-				intFormat.format(
-						parent.getInformation()
-								.getElements(null, null, null, true, false, "AdapterHandlerEntry")
-								.count()), greenFormat)).println(parent.getTerminal());
+//		(new AttributedString("Adapters: ", AttributedStyle.DEFAULT)).println(parent.getTerminal());
+//		(new AttributedString("  -> AdapterFingerPrint: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
+//		(new AttributedString(
+//				intFormat.format(
+//						parent.getInformation()
+//								.getElements(null, null, null, true, false, "AdapterFingerPrint")
+//								.count()), greenFormat)).println(parent.getTerminal());
+//		(new AttributedString("  -> AdapterHandlerEntry: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
+//		(new AttributedString(
+//				intFormat.format(
+//						parent.getInformation()
+//								.getElements(null, null, null, true, false, "AdapterHandlerEntry")
+//								.count()), greenFormat)).println(parent.getTerminal());
 
-		(new AttributedString("RecordComponent: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-		(new AttributedString(intFormat.format(
-				parent.getInformation().getElements(null, null, null, true, false, "RecordComponent").count()), greenFormat)).println(parent.getTerminal());
+//		(new AttributedString("RecordComponent: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
+//		(new AttributedString(intFormat.format(
+//				parent.getInformation().getElements(null, null, null, true, false, "RecordComponent").count()), greenFormat)).println(parent.getTerminal());
 
 //		(new AttributedString("Annotations: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
 //		(new AttributedString(intFormat.format(
@@ -246,10 +246,10 @@ class InfoCommand implements Runnable {
 //				greenFormat)).println(parent.getTerminal());
 
 
-		(new AttributedString("Misc Data: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-		(new AttributedString(intFormat.format(parent.getInformation()
-				.getElements(null, null, null, true, false, "Misc-data")
-				.count()), greenFormat)).println(parent.getTerminal());
+//		(new AttributedString("Misc Data: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
+//		(new AttributedString(intFormat.format(parent.getInformation()
+//				.getElements(null, null, null, true, false, "Misc-data")
+//				.count()), greenFormat)).println(parent.getTerminal());
 
 	}
 
