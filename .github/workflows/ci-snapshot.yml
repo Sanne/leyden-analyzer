@@ -47,9 +47,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v4
+      
     - name: Find older snapshot tags
       id: find-older-tags
-      run: echo 'TAGS=['$(git tag -l "*dev" | xargs | sed -e 's/ /,/g')']' >> $GITHUB_OUTPUT
+      run: echo 'TAGS=['$(git tag -l "*dev" | grep -v $(date +"%Y.%m.%d")  | xargs | sed -e 's/ /,/g')']' >> $GITHUB_OUTPUT
 
   remove-older-snapshots:
     needs: find-older-snapshots
