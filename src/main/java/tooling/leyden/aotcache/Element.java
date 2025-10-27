@@ -60,10 +60,12 @@ public abstract class Element {
 			sb.append(address);
 			sb.style(AttributedStyle.DEFAULT);
 		}
-		sb.append(" with size ");
-		sb.style(AttributedStyle.DEFAULT.bold());
-		sb.append(getSize().toString());
-		sb.style(AttributedStyle.DEFAULT);
+		if (getSize() != null) {
+			sb.append(" with size ");
+			sb.style(AttributedStyle.DEFAULT.bold());
+			sb.append(getSize().toString());
+			sb.style(AttributedStyle.DEFAULT);
+		}
 		sb.append(".");
 		sb.append(AttributedString.NEWLINE);
 		sb.append(leftPadding + "This information comes from: ");
