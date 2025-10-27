@@ -135,7 +135,7 @@ public class AOTMapParser implements Consumer<String> {
 //				0x00000000ffe94558: @@ Object (0xffe94558) java.lang.String "sun.util.locale.BaseLocale"
 				//java.lang.Class instances (they have been pre-created by <clinit> method:
 //				0x00000000ffef4720: @@ Object (0xffef4720) java.lang.Class Lsun/util/locale/BaseLocale$1;
-				element = processObject(contentParts);
+				element = processObject(contentParts, content);
 			} else {
 				loadFile.getParent().getOut().println("Unidentified: " + type);
 				loadFile.getParent().getOut().println(content);
@@ -153,7 +153,7 @@ public class AOTMapParser implements Consumer<String> {
 		}
 	}
 
-	private Element processObject(String[] contentParts) {
+	private Element processObject(String[] contentParts, String content) {
 		ReferencingElement element;
 		var id = "";
 		for (int i = 3; i < contentParts.length; i++) {
@@ -167,7 +167,8 @@ public class AOTMapParser implements Consumer<String> {
 
 		//Link to corresponding assets:
 		if (contentParts[4].equalsIgnoreCase("java.lang.String") && contentParts.length > 5) {
-			final var withoutQuotes = contentParts[5].substring(1, contentParts[5].length() - 1);
+			var string = content.substring(content.indexOf("java.lang.String") + 17);
+			final var withoutQuotes = string.substring(1, string.length() - 1);
 			this.information.getElements(withoutQuotes, null, null,
 					true,true,"ConstantPool", "Symbol")
 					.forEach(element::addReference);

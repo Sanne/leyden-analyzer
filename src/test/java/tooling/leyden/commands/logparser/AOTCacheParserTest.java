@@ -15,7 +15,6 @@ import java.io.File;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -57,16 +56,21 @@ class AOTCacheParserTest extends DefaultTest {
 		var classObject = new ClassObject("java.lang.Float");
 		aotCache.addAOTCacheElement(classObject, "test");
 
+		classObject = new ClassObject("java.lang.String");
+		aotCache.addAOTCacheElement(classObject, "test");
+
 		classObject = new ClassObject("java.lang.String$CaseInsensitiveComparator");
 		aotCache.addAOTCacheElement(classObject, "test");
 
 		aotCacheParser.accept("0x00000000fff63458: @@ Object (0xfff63458) java.lang.String$CaseInsensitiveComparator");
 		aotCacheParser.accept("0x00000000fff632f0: @@ Object (0xfff632f0) [I length: 0");
 		aotCacheParser.accept("0x00000000fff62900: @@ Object (0xfff62900) java.lang.Float");
+		aotCacheParser.accept("0x00000000ffd0a4c8: @@ Object (0xffd0a4c8) java.lang.String \"| resolve\"");
+		aotCacheParser.accept("0x00000000ffd11068: @@ Object (0xffd11068) java.lang.String \" (success)\"");
 
-		assertEquals(5, aotCache.getAll().size());
+		assertEquals(8, aotCache.getAll().size());
 		final var objects = aotCache.getElements(null, null, null, true, false, "Object").toList();
-		assertEquals(3, aotCache.getElements(null, null, null, true, false, "Object").count());
+		assertEquals(5, aotCache.getElements(null, null, null, true, false, "Object").count());
 		for (Element e : objects) {
 			assertTrue(e instanceof ReferencingElement);
 			ReferencingElement re = (ReferencingElement) e;
