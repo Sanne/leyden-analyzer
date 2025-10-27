@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import tooling.leyden.aotcache.ClassObject;
+import tooling.leyden.aotcache.ConstantPoolObject;
 import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.ReferencingElement;
 import tooling.leyden.commands.DefaultTest;
@@ -192,6 +193,8 @@ class LogParserTest extends DefaultTest {
 		//If a class exists already, the Symbol must be linked there:
 		aotParser.accept("0x0000000800a8efe8: @@ Class             536 sun.util.locale.BaseLocale");
 		aotParser.accept("0x0000000800a8efe8: @@ Class             536 sun.util.locale.LocaleUtils");
+		aotParser.accept("0x0000000800a92ef0: @@ ConstantPoolCache 64 sun.util.locale.BaseLocale");
+		aotParser.accept("0x0000000802f8c710: @@ ConstantPool      2456 sun.util.locale.BaseLocale");
 		parser.accept("[trace][aot,resolve              ] archived klass  CP entry [  2]: sun/util/locale/BaseLocale boot => java/lang/Object boot");
 		parser.accept("[trace][aot,resolve              ] archived klass  CP entry [  8]: sun/util/locale/BaseLocale boot => sun/util/locale/BaseLocale boot");
 		parser.accept("[trace][aot,resolve              ] archived klass  CP entry [ 28]: sun/util/locale/BaseLocale boot => sun/util/locale/LocaleUtils boot (not supertype)");
@@ -204,6 +207,11 @@ class LogParserTest extends DefaultTest {
 		assertEquals(2, parentSymbol.getReferences().size());
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("java/lang/Object")));
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("sun/util/locale/LocaleUtils")));
+
+		var cp = (ConstantPoolObject) information.getElements("sun.util.locale.BaseLocale",
+				null, null, true, true, "ConstantPool").findAny().get();
+		assertNotNull(cp.getConstantPoolCacheAddress());
+		assertEquals(cp.getPoolHolder(), classObj);
 
 		classObj = (ClassObject) information.getElements("sun.util.locale.LocaleUtils",
 				null, null, true, true, "Class").findAny().get();

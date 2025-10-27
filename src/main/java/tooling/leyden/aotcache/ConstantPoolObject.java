@@ -9,6 +9,7 @@ import org.jline.utils.AttributedStyle;
  */
 public class ConstantPoolObject extends ReferencingElement {
 	private String constantPoolCacheAddress;
+	private ClassObject poolHolder;
 
 	public ConstantPoolObject() {
 	}
@@ -19,6 +20,14 @@ public class ConstantPoolObject extends ReferencingElement {
 
 	public void setConstantPoolCacheAddress(String constantPoolCacheAddress) {
 		this.constantPoolCacheAddress = constantPoolCacheAddress;
+	}
+
+	public ClassObject getPoolHolder() {
+		return poolHolder;
+	}
+
+	public void setPoolHolder(ClassObject poolHolder) {
+		this.poolHolder = poolHolder;
 	}
 
 	@Override

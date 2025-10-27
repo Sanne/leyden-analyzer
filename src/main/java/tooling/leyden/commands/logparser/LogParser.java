@@ -2,6 +2,7 @@ package tooling.leyden.commands.logparser;
 
 import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.Configuration;
+import tooling.leyden.aotcache.ConstantPoolObject;
 import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.Information;
 import tooling.leyden.aotcache.MethodObject;
@@ -141,6 +142,14 @@ public class LogParser implements Consumer<String> {
 					"Class").findAny();
 			if (classObj.isPresent()) {
 				((ClassObject) classObj.get()).addSymbol(parentSymbol);
+
+				// Now search for the corresponding ConstantPool and, if exists, link this class to its poolHolder
+				// again, don't create it, just... wait for an AOT Cache map file if it does not exist yet
+				var cp = information.getElements(parentClassName.replaceAll("/", "."), null, null, true, true,
+						"ConstantPool").findAny();
+				if (cp.isPresent()) {
+					((ConstantPoolObject) cp.get()).setPoolHolder((ClassObject) classObj.get());
+				}
 			}
 		}
 
