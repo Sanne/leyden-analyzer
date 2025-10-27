@@ -67,7 +67,7 @@ public class AOTMapParser implements Consumer<String> {
 //					0x0000000801e3c028: @@ Symbol            32 jdk/internal/event/Event
 //					0x0000000801e3c048: @@ Symbol            24 jdk/jfr/Event
 //					0x0000000801e3c060: @@ Symbol            8 [Z
-				element = processReferencingElement(new ReferencingElement(), identifier, content);
+				element = processSymbol(identifier);
 			} else if (type.equalsIgnoreCase("MethodCounters")
 //					0x0000000801e4c280: @@ MethodCounters    64
 //					0x0000000801e4c280:   0000000800001800 0000000000000002 0000000801e4c228 0000000801e4c280   ................(...............
@@ -135,12 +135,7 @@ public class AOTMapParser implements Consumer<String> {
 //				0x00000000ffe94558: @@ Object (0xffe94558) java.lang.String "sun.util.locale.BaseLocale"
 				//java.lang.Class instances (they have been pre-created by <clinit> method:
 //				0x00000000ffef4720: @@ Object (0xffef4720) java.lang.Class Lsun/util/locale/BaseLocale$1;
-				var id = "";
-				for (int i = 4; i < contentParts.length; i++) {
-					id = id + " " + contentParts[i];
-				}
-				element = processReferencingElement(new ReferencingElement(), id.trim(), content);
-				((ReferencingElement) element).setName(contentParts[3] + " " + id.trim());
+				element = processObject(contentParts);
 			} else {
 				loadFile.getParent().getOut().println("Unidentified: " + type);
 				loadFile.getParent().getOut().println(content);
@@ -156,6 +151,87 @@ public class AOTMapParser implements Consumer<String> {
 			loadFile.getParent().getOut().println("ERROR: " + e.getMessage());
 			loadFile.getParent().getOut().println("ERROR: " + content);
 		}
+	}
+
+	private Element processObject(String[] contentParts) {
+		ReferencingElement element;
+		var id = "";
+		for (int i = 3; i < contentParts.length; i++) {
+			id = id + " " + contentParts[i];
+		}
+		id = id.trim();
+
+		// It shouldn't already exist unless we load the map file twice which is a mistake,
+		// so let's assume this is new
+		element = new ReferencingElement(id, "Object");
+
+		//Link to corresponding assets:
+		if (contentParts[4].equalsIgnoreCase("java.lang.String") && contentParts.length > 5) {
+			final var withoutQuotes = contentParts[5].substring(1, contentParts[5].length() - 1);
+			this.information.getElements(withoutQuotes, null, null,
+					true,true,"ConstantPool", "Symbol")
+					.forEach(element::addReference);
+
+			this.information.getElements(withoutQuotes.replaceAll("/","."),
+					null,null,true,true,"ConstantPool", "Symbol")
+					.forEach(element::addReference);
+
+			//Add the java.lang.String class itself...
+			this.information.getElements("java.lang.String", null, null, true, true,
+							"Class").forEach(element::addReference);
+		} if (contentParts[4].equalsIgnoreCase("java.lang.Class") && contentParts.length > 5) {
+			this.information.getElements(contentParts[5], null, null, true, true,
+					"Symbol").forEach(element::addReference);
+			this.information.getElements(contentParts[5].replaceAll("/", "."), null, null, true, true,
+					"Class").forEach(element::addReference);
+		} else {
+			this.information.getElements(contentParts[4], null, null, true, true,
+							"Class")
+					.forEach(element::addReference);
+
+			if (contentParts[4].startsWith("L") && contentParts[4].endsWith(";")) {
+				this.information.getElements(contentParts[4].substring(1, contentParts[4].length() - 1), null,
+								null, true, true, "Class")
+						.forEach(element::addReference);
+			}
+		}
+
+		return element;
+	}
+
+	private Element processSymbol(String identifier) {
+		Element element;
+
+		var existingSymbol =
+				this.information.getElements(identifier, null, null, true, true,
+						"Symbol").findAny();
+		if (existingSymbol.isPresent()) {
+			element = existingSymbol.get();
+		} else {
+			element = new ReferencingElement(identifier, "Symbol");
+		}
+
+		//Try to associate it to the corresponding class:
+		var classObject =
+				this.information.getElements(identifier.replaceAll("/", "."), null, null, true, true,
+						"Class").findAny();
+		if (classObject.isPresent()) {
+			((ClassObject) classObject.get()).addSymbol((ReferencingElement) element);
+		}
+		if (identifier.startsWith("L") && identifier.endsWith(";")) {
+			classObject =
+					this.information.getElements(identifier.replaceAll("/", ".").substring(1, identifier.length() - 1),
+							null,
+							null, true,
+							true,
+							"Class").findAny();
+			if (classObject.isPresent()) {
+				((ClassObject) classObject.get()).addSymbol((ReferencingElement) element);
+			}
+		}
+		// Do not link to anything else, we will do that with the logs
+		// logs are factual, not guessing as we can do at this point
+		return element;
 	}
 
 	private Element processMethodDataAndCounter(String content, String identifier, String address, String type) {
@@ -204,18 +280,23 @@ public class AOTMapParser implements Consumer<String> {
 	}
 
 	private Element processConstantPool(String identifier, String content) {
-		var cp = this.information.getElements(identifier, null, null, true, true, "ConstantPool").findAny();
-		if (cp.isPresent()) {
-			return processReferencingElement((ReferencingElement) cp.get(), identifier, content);
+		var element = this.information.getElements(identifier, null, null, true, true, "ConstantPool").findAny();
+		ConstantPoolObject cp;
+		if (element.isPresent()) {
+			cp = (ConstantPoolObject) element.get();
+		} else {
+			cp = new ConstantPoolObject(identifier);
 		}
-		return processReferencingElement(new ConstantPoolObject(), identifier, content);
-	}
 
+		if (cp.getPoolHolder() == null) {
+			//Try to associate it to the corresponding class:
+			element = this.information.getElements(identifier, null, null, true, true, "Class").findAny();
+			if (element.isPresent()) {
+				cp.setPoolHolder((ClassObject) element.get());
+			}
+		}
 
-	private Element processReferencingElement(ReferencingElement e, String identifier, String content) {
-		e.setName(identifier);
-		fillReferencedElement(identifier, e, content);
-		return e;
+		return cp;
 	}
 
 	private Element processKlassTrainingData(ReferencingElement e, String identifier, String address) {
@@ -228,10 +309,10 @@ public class AOTMapParser implements Consumer<String> {
 			if (classs.isEmpty()) {
 				ClassObject classObject = new ClassObject(identifier);
 				classObject.setKlassTrainingData(e);
-				e.getReferences().add(classObject);
+				e.addReference(classObject);
 				this.information.addExternalElement(classObject, "Referenced from a KlassTrainingData.");
 			} else {
-				e.getReferences().add(classs.get());
+				e.addReference(classs.get());
 				((ClassObject) classs.get()).setKlassTrainingData(e);
 			}
 
@@ -257,7 +338,7 @@ public class AOTMapParser implements Consumer<String> {
 			} else {
 				method = (MethodObject) methods.get();
 			}
-			e.getReferences().add(method);
+			e.addReference(method);
 			method.setMethodTrainingData(e);
 			e.setName(identifier);
 		} else {
@@ -286,7 +367,7 @@ public class AOTMapParser implements Consumer<String> {
 			} else {
 				method = (MethodObject) methods.get();
 			}
-			e.getReferences().add(method);
+			e.addReference(method);
 			method.addCompileTrainingData(level, e);
 			e.setName(content);
 		} else {
@@ -306,6 +387,15 @@ public class AOTMapParser implements Consumer<String> {
 			return classs.get();
 		}
 		ClassObject classObject = new ClassObject(identifier);
+		//If there are Symbols with this exact class name (dotted or slashed), link them:
+		var symbol = this.information.getElements(identifier.replaceAll(".", "/"), null, null, true, true, "Symbol").findAny();
+		if (symbol.isPresent()) {
+			classObject.addSymbol((ReferencingElement) symbol.get());
+		}
+		symbol = this.information.getElements(identifier, null, null, true, true, "Symbol").findAny();
+		if (symbol.isPresent()) {
+			classObject.addSymbol((ReferencingElement) symbol.get());
+		}
 
 		if (identifier.contains("$$")) {
 			//Lambda class, link to main outer class
@@ -315,7 +405,7 @@ public class AOTMapParser implements Consumer<String> {
 				ClassObject parentObject = new ClassObject(parent);
 				information.addExternalElement(parentObject, "Referenced from a Class element in " + thisSource);
 			} else {
-				classObject.getReferences().add(parentClass.get());
+				classObject.addReference(parentClass.get());
 			}
 		}
 
@@ -342,7 +432,7 @@ public class AOTMapParser implements Consumer<String> {
 		BasicObject constMethod = new BasicObject(identifier);
 
 		//Which Method do we belong to?
-		var mop= this.information.getElements(identifier, null, null, true, false, "Method").findAny();
+		var mop = this.information.getElements(identifier, null, null, true, false, "Method").findAny();
 		if (mop.isPresent()) {
 			((MethodObject) mop.get()).setConstMethod(constMethod);
 		} else {
@@ -352,175 +442,5 @@ public class AOTMapParser implements Consumer<String> {
 		}
 
 		return constMethod;
-	}
-
-	private void fillReferencedElement(final String identifier, final ReferencingElement element,
-									   final String content) {
-		//In case we are referencing some class already loaded
-		// Replace / for . because some elements use / to point to a class
-		var objectName = identifier.replaceAll("/", ".");
-
-		if (methodSignature(element, content, objectName)) {
-			return;
-		}
-
-		if (listOfElements(element, content, objectName)) {
-			return;
-		}
-
-		if (isMethod(element, objectName)) {
-			return;
-		}
-
-		if (javaFileName(element, objectName)) {
-			return;
-		}
-
-		if (literalString(element, objectName)) {
-			return;
-		}
-
-		if (objectName.trim().startsWith("java.lang.Class ")) {
-			//Coming from an Object, we are looking to reference the java.lang.Class
-			//and the class that that java.lang.Class refers itself
-			this.information.getElements("java.lang.Class", new String[]{"java.lang"}, null, true, false,
-					"Class").forEach(element::addReference);
-
-			//Now look for the class itself
-			objectName = objectName.substring(16).trim();
-		}
-
-		//Now try to locate the class itself
-		if (!objectName.isBlank()) {
-			List<Element> elements = this.information.getElements(objectName, null, null, true, false, "Class").toList();
-			if (!elements.isEmpty()) {
-				elements.forEach(e -> element.addReference(e));
-			} else {
-				//Maybe we are looking for a Symbol
-				this.information.getElements(objectName.replaceAll("\\.", "/"),
-						null, null, true, false,"Symbol")
-						.forEach(element::addReference);
-			}
-		}
-	}
-
-	private boolean literalString(ReferencingElement element, String objectName) {
-		if (objectName.trim().startsWith("java.lang.String ")) {
-			this.information.getElements("java.lang.String", new String[]{"java.lang"}, null, true, false,
-					"Class").forEach(element::addReference);
-
-			//Coming from an Object, we are looking to reference a Symbol
-			if (objectName.length() > 18) {
-				//avoid empty strings
-				final var name = objectName.substring(18, objectName.length() - 1);
-				if (!name.isBlank()) {
-					this.information.getElements(name, null, null, true, false,"Symbol")
-							.forEach(element::addReference);
-				}
-			}
-			return true;
-		}
-		return false;
-	}
-
-	private boolean javaFileName(ReferencingElement element, String objectName) {
-		if (objectName.trim().endsWith(".java")) {
-			//Some Symbols have the .java filename of a class:
-			objectName = objectName.substring(0, objectName.length() - 5);
-
-			//We need to find the class without package:
-			//This is heavy that's why we have a special function for it
-			for (Element el : this.information.getClassesByName(objectName)) {
-				element.addReference(el);
-			}
-			return true;
-		}
-		return false;
-	}
-
-	private boolean isMethod(ReferencingElement element, String objectName) {
-		//if it refers to a method, let's search for it
-		if (objectName.indexOf("$$") > 0) {
-			objectName = objectName.replace("$$", ".");
-			this.information.getElements(objectName, null, null, true, false, "Method")
-					.forEach(element::addReference);
-			return true;
-		}
-		return false;
-	}
-
-	private boolean listOfElements(ReferencingElement element, String content, String objectName) {
-		//Sometimes they are a list of concatenated classes/elements
-		// Ljava/lang/Object;Ljava/util/function/Supplier<Ljdk/internal/util/ReferencedKeySet<Lsun/util/locale/BaseLocale;>;>;
-		if (objectName.contains(";")
-				//Sometimes it is a lonely class which we don't process on this code block:
-				// Lsun/util/locale/BaseLocale$1;
-				&& (objectName.indexOf(";") != objectName.lastIndexOf(";")
-				|| !objectName.endsWith(";"))) {
-
-			if (objectName.contains("<")) {
-				//Get generics out
-				fillReferencedElement(objectName.substring(0, objectName.indexOf("<")), element, content);
-
-				//Now process the generics inside the first <>
-				//FIXME: This should be done with regexp probably.
-				// But the damn nested <> are breaking my attempts.
-				String generics = "";
-				String tmp = objectName.substring(objectName.indexOf("<") + 1);
-				int nested = 1;
-				while (nested > 0) {
-					if (tmp.indexOf("<") > 0
-							&& tmp.indexOf("<") < tmp.indexOf(">")) {
-						generics = generics + tmp.substring(0, tmp.indexOf("<") + 1);
-						tmp = tmp.substring(tmp.indexOf("<") + 1);
-						nested++;
-					} else if (tmp.indexOf(">") > 0) {
-						generics = generics + tmp.substring(0, tmp.indexOf(">") + (nested > 1 ? 1 : 0));
-						tmp = tmp.substring(tmp.indexOf(">") + 1);
-						nested--;
-					} else {
-						generics = generics + tmp;
-						tmp = "";
-						nested = 0;
-					}
-				}
-
-				fillReferencedElement(generics, element, content);
-				if (!(tmp.isBlank() || tmp.equals(";"))) {
-					fillReferencedElement(tmp, element, content);
-				}
-			} else {
-				for (String className : objectName.split(";")) {
-					fillReferencedElement(className + ";", element, content);
-				}
-			}
-			return true;
-		}
-		return false;
-	}
-
-	private boolean methodSignature(ReferencingElement element, String content, String objectName) {
-		if (objectName.startsWith("(")
-				&& objectName.indexOf(")") > 0
-				&& (objectName.endsWith(";") || objectName.endsWith("V"))) {
-			//We are probably looking at some method signature
-			//(Ljava.lang.String;Ljava.lang.String;)Lsun.util.locale.BaseLocale;
-			//()Lsun.util.locale.BaseLocale;
-			//(Lsun.util.locale.BaseLocale;)V
-			//Let's try to separate each class and process them independently
-			String[] parameters = objectName.substring(1, objectName.indexOf(")")).split(";");
-			for (String parameter : parameters) {
-				if (parameter != null && !parameter.isBlank()) {
-					fillReferencedElement(parameter, element, content);
-				}
-			}
-			String returns = objectName.substring(objectName.indexOf(")") + 1);
-			if (!returns.equals("V")) {
-				fillReferencedElement(returns.substring(0, returns.length() - 1), element, content);
-			}
-			//And stop processing this
-			return true;
-		}
-		return false;
 	}
 }

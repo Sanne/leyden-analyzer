@@ -3,6 +3,7 @@ package tooling.leyden.commands.logparser;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 import tooling.leyden.aotcache.ClassObject;
+import tooling.leyden.aotcache.ConstantPoolObject;
 import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.MethodObject;
 import tooling.leyden.aotcache.ReferencingElement;
@@ -82,22 +83,21 @@ class AOTCacheParserTest extends DefaultTest {
 		final var loadFile = new LoadFileCommand();
 		loadFile.setParent(getDefaultCommand());
 		final var aotCache = loadFile.getParent().getInformation();
-		aotCache.clear();
 		AOTMapParser aotCacheParser = new AOTMapParser(loadFile);
 
-		var classObject = new ClassObject("java.security.InvalidAlgorithmParameterException");
-		aotCache.addAOTCacheElement(classObject, "test");
+		aotCacheParser.accept("0x0000000800dae648: @@ Class             616 java.security.InvalidAlgorithmParameterException");
+		aotCacheParser.accept("0x00000008020acbe8: @@ Symbol            56 java/security/InvalidAlgorithmParameterException");
+		aotCacheParser.accept("0x000000080225a980: @@ Symbol            56 Ljava/security/InvalidAlgorithmParameterException;");
 
-		aotCacheParser.accept("0x00000008028dbaf0: @@ Symbol            48 InvalidAlgorithmParameterException.java");
-
-		assertEquals(2, aotCache.getAll().size());
-		assertEquals(1, aotCache.getElements(null, null, null, true, false, "Symbol").count());
+		assertEquals(3, aotCache.getAll().size());
+		assertEquals(2, aotCache.getElements(null, null, null, true, false, "Symbol").count());
 		assertEquals(1, aotCache.getElements(null, null, null, true, false, "Class").count());
 		for (Element e : aotCache.getElements(null, null, null, true, false, "Symbol").toList()) {
 			assertTrue(e instanceof ReferencingElement);
-			ReferencingElement re = (ReferencingElement) e;
-			assertNotEquals(0, re.getReferences().size());
+			assertEquals(0, ((ReferencingElement)e).getReferences().size());
 		}
+		ClassObject classObject =  (ClassObject) aotCache.getElements(null, null, null, true, false, "Class").findAny().get();
+		assertEquals(2, classObject.getSymbols().size());
 
 	}
 
@@ -107,12 +107,12 @@ class AOTCacheParserTest extends DefaultTest {
 		final var loadFile = new LoadFileCommand();
 		loadFile.setParent(getDefaultCommand());
 		final var aotCache = loadFile.getParent().getInformation();
-		aotCache.clear();
 		AOTMapParser aotCacheParser = new AOTMapParser(loadFile);
 
 		var classObject = new ClassObject("java.lang.String");
 		aotCache.addAOTCacheElement(classObject, "test");
 
+		aotCacheParser.accept("0x0000000801de8110: @@ Symbol            24 java/lang/String");
 
 		aotCacheParser.accept("0x0000000800a8efe8: @@ Class             536 sun.util.locale.BaseLocale");
 		aotCacheParser.accept("0x0000000800a8f258: @@ ConstantPoolCache 64 sun.util.locale.BaseLocale");
@@ -155,20 +155,24 @@ class AOTCacheParserTest extends DefaultTest {
 		aotCacheParser.accept("0x00000000ffefd288: @@ Object (0xffefd288) java.lang.Class [Lsun/util/locale/BaseLocale;");
 
 		assertEquals(2, aotCache.getElements(null, null, null, true, false, "ConstantPool").count());
-		assertEquals(0, aotCache.getElements(null, null, null, true, false, "ConstantPoolCache").count());
-		assertEquals(19, aotCache.getElements(null, null, null, true, false, "Symbol").count());
+		assertTrue(aotCache.getElements(null, null, null, true, false, "ConstantPool")
+				.allMatch(cp -> ((ConstantPoolObject)cp).getConstantPoolCacheAddress() != null));
+
+		assertEquals(20, aotCache.getElements(null, null, null, true, false, "Symbol").count());
 		assertEquals(8, aotCache.getElements(null, null, null, true, false, "Object").count());
 
 		for (Element e : aotCache.getElements(null, null, null, true, false,
-				"Object", "ConstantPool").toList()) {
+				"Object").toList()) {
 			assertTrue(e instanceof ReferencingElement);
-			ReferencingElement re = (ReferencingElement) e;
-			assertNotEquals(0, re.getReferences().size(), e + " should have a reference");
+			assertTrue(((ReferencingElement) e).getReferences().size() > 0, e + " should have at least a reference");
 		}
 
 		assertEquals(3 + 1, aotCache.getElements(null, null, null, true, false, "Class").count());
+		aotCache.getElements(null, null, null, true, false, "Class")
+				.allMatch(c -> ((ClassObject)c).getSymbols().size() > 0);
 
-		assertEquals(2 + 19 + 8 + 3 + 1, aotCache.getAll().size());
+		//Make sure we didn'0t create unexpected assets in the cache:
+		assertEquals(2 + 20 + 8 + 3 + 1, aotCache.getAll().size());
 
 	}
 

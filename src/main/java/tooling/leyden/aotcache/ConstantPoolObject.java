@@ -7,11 +7,13 @@ import org.jline.utils.AttributedStyle;
 /**
  * This element represents an Object of the ConstantPool(Cache) inside the AOT Cache.
  */
-public class ConstantPoolObject extends ReferencingElement {
+public class ConstantPoolObject extends Element {
 	private String constantPoolCacheAddress;
 	private ClassObject poolHolder;
+	private String key;
 
-	public ConstantPoolObject() {
+	public ConstantPoolObject(String key) {
+		this.key = key;
 	}
 
 	public String getConstantPoolCacheAddress() {
@@ -28,6 +30,11 @@ public class ConstantPoolObject extends ReferencingElement {
 
 	public void setPoolHolder(ClassObject poolHolder) {
 		this.poolHolder = poolHolder;
+	}
+
+	@Override
+	public String getKey() {
+		return key;
 	}
 
 	@Override
