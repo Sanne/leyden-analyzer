@@ -1,10 +1,11 @@
 package tooling.leyden.commands.logparser;
 
-import tooling.leyden.aotcache.Information;
 import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.Configuration;
 import tooling.leyden.aotcache.Element;
+import tooling.leyden.aotcache.Information;
 import tooling.leyden.aotcache.MethodObject;
+import tooling.leyden.aotcache.ReferencingElement;
 import tooling.leyden.aotcache.WarningType;
 import tooling.leyden.commands.LoadFileCommand;
 
@@ -17,9 +18,11 @@ import java.util.function.Consumer;
 public class LogParser implements Consumer<String> {
 
 	private final Information information;
+	private final String thisSource;
 
 	public LogParser(LoadFileCommand loadFile) {
 		this.information = loadFile.getParent().getInformation();
+		thisSource = "Java Log";
 	}
 
 	@Override
@@ -44,7 +47,6 @@ public class LogParser implements Consumer<String> {
 
 		final String message = content.substring(content.indexOf("]") + 1);
 		// [info][class,load] java.lang.invoke.DelegatingMethodHandle$Holder source: shared objects file
-		final var thisSource = "Java Log";
 		final var trimmedMessage = message.trim();
 		if (containsTags(tags, "class", "load")) {
 			if (message.contains(" source: ")) {
@@ -77,7 +79,7 @@ public class LogParser implements Consumer<String> {
 					e = new ClassObject(className);
 					information.addExternalElement(e, thisSource);
 				}
-				e.setWhereDoesItComeFrom(content.substring(content.indexOf("source: ")));
+				e.addWhereDoesItComeFrom(content.substring(content.indexOf("source: ")));
 			}
 		} else if (containsTags(tags, "aot")) {
 			if (containsTags(tags, "codecache")) {
@@ -100,6 +102,12 @@ public class LogParser implements Consumer<String> {
 						information.getStatistics().addValue("[LOG] [CodeCache] AOT code cache size", trimmedMessage.substring(20).trim());
 					}
 				}
+			} else if (containsTags(tags, "resolve")) {
+				if (level.equals("trace")) {
+					if (trimmedMessage.startsWith("archived")) {
+						processAotTraceResolve(trimmedMessage);
+					}
+				}
 			}
 			if (trimmedMessage.startsWith("Skipping ")) {
 				processSkipping(message);
@@ -111,6 +119,67 @@ public class LogParser implements Consumer<String> {
 				processInfo(trimmedMessage);
 			}
 		}
+	}
+
+	private void processAotTraceResolve(String trimmedMessage) {
+		final var splitMessage = trimmedMessage.substring(trimmedMessage.indexOf("]: ") + 2).trim().split("\\s+");
+
+		//First we find the Symbol related to
+		final var parentClassName = splitMessage[0];
+		var elementSearch = information.getElements(parentClassName, null, null, true, true, "Symbol").findAny();
+		ReferencingElement parentSymbol;
+		if (elementSearch.isPresent()) {
+			parentSymbol = (ReferencingElement) elementSearch.get();
+		} else {
+			parentSymbol = new ReferencingElement(parentClassName, "Symbol");
+			information.addExternalElement(parentSymbol, thisSource);
+		}
+
+		if (trimmedMessage.startsWith("archived klass")) {
+//	archived klass  CP entry [  2]: org/infinispan/rest/framework/impl/InvocationImpl unreg => java/lang/Object boot
+			findOrCreateSymbolAndLinkToParent(parentSymbol,
+					"Used by " + parentSymbol.getKey() + " " + splitMessage[4] + ".", splitMessage[3]);
+		} else if (trimmedMessage.startsWith("archived field")) {
+// archived field  CP entry [ 20]: org/infinispan/rest/framework/impl/InvocationImpl => org/infinispan/rest/framework/impl/InvocationImpl.action:Ljava/lang/String;
+			final var names = splitMessage[2].split(":");
+			final String source = "Used by a field in " + names[0] + ".";
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1]);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")));
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1));
+		} else if (trimmedMessage.startsWith("archived method")
+					|| trimmedMessage.startsWith("archived interface method")) {
+// archived interface method CP entry [ 13]: jdk/jfr/internal/jfc/model/XmlNot java/util/List.size:()I => java/util/List
+// archived method CP entry [338]: jdk/jfr/internal/dcmd/DCmdStart jdk/jfr/internal/dcmd/Argument.<init>
+// :(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZLjava/lang/String;Z)V => jdk/jfr/internal/dcmd/Argument
+			final var names = splitMessage[1].split(":");
+			final String source = "Used by method " + names[0] + ".";
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")));
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1));
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1]);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, splitMessage[3]);
+		} else if (trimmedMessage.startsWith("archived indy ")) {
+// archived indy   CP entry [294]: jdk/jfr/internal/dcmd/DCmdDump (0) => java/lang/invoke/LambdaMetafactory.metafactory:
+// (Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;
+			final var names = splitMessage[3].split(":");
+			final String source = "Used by indy " + splitMessage[0] + ".";
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")));
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1));
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1]);
+		}
+	}
+
+	private void findOrCreateSymbolAndLinkToParent(ReferencingElement parentSymbol, String source, String symbolName) {
+		java.util.Optional<Element> elementSearch;
+		ReferencingElement referencedSymbol;
+		elementSearch = information.getElements(symbolName, null, null, true, true, "Symbol").findAny();
+		if (elementSearch.isPresent()) {
+			referencedSymbol = (ReferencingElement) elementSearch.get();
+		} else {
+			referencedSymbol = new ReferencingElement(symbolName, "Symbol");
+			information.addExternalElement(referencedSymbol, thisSource);
+		}
+		referencedSymbol.addWhereDoesItComeFrom(source);
+		parentSymbol.addReference(referencedSymbol);
 	}
 
 	private void processWarning(String trimmedMessage) {

@@ -5,6 +5,7 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -13,19 +14,19 @@ public abstract class Element {
 
 	private String type;
 
-	private String whereDoesItComeFrom;
+	private List<String> whereDoesItComeFrom = new ArrayList<>();
 
 	/**
 	 * Do we know why this element was stored in the cache?
 	 *
 	 * @return reason why it was stored
 	 */
-	public String getWhereDoesItComeFrom() {
+	public List<String> getWhereDoesItComeFrom() {
 		return whereDoesItComeFrom;
 	}
 
-	public void setWhereDoesItComeFrom(String whereDoesItComeFrom) {
-		this.whereDoesItComeFrom = whereDoesItComeFrom;
+	public void addWhereDoesItComeFrom(String whereDoesItComeFrom) {
+		this.whereDoesItComeFrom.add(whereDoesItComeFrom);
 	}
 
 	/**
