@@ -133,6 +133,15 @@ public class LogParser implements Consumer<String> {
 		} else {
 			parentSymbol = new ReferencingElement(parentClassName, "Symbol");
 			information.addExternalElement(parentSymbol, thisSource);
+			// If a class already exists with this Symbol, link it. If not, ignore it.
+			// We will do the heavy creation work on AOT Parser, if any is loaded
+			// because at this point, we don't know anything about the class... except the name
+			// is it cached? is it not? Who knows with this information?
+			var classObj = information.getElements(parentClassName.replaceAll("/", "."), null, null, true, true,
+					"Class").findAny();
+			if (classObj.isPresent()) {
+				((ClassObject) classObj.get()).addSymbol(parentSymbol);
+			}
 		}
 
 		if (trimmedMessage.startsWith("archived klass")) {
@@ -177,6 +186,15 @@ public class LogParser implements Consumer<String> {
 		} else {
 			referencedSymbol = new ReferencingElement(symbolName, "Symbol");
 			information.addExternalElement(referencedSymbol, thisSource);
+
+			// If a class already exists with this Symbol, link it. If not, ignore it.
+			// We will fill it when an AOT Cache loads, if it loads
+			// (maybe it is not even a class, so don't care if this fails)
+			var classObj = information.getElements(symbolName.replaceAll("/", "."), null, null, true, true,
+					"Class").findAny();
+			if (classObj.isPresent()) {
+				((ClassObject) classObj.get()).addSymbol(parentSymbol);
+			}
 		}
 		referencedSymbol.addWhereDoesItComeFrom(source);
 		parentSymbol.addReference(referencedSymbol);

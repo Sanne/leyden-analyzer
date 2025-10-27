@@ -4,6 +4,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.ReferencingElement;
 import tooling.leyden.commands.DefaultTest;
@@ -187,5 +188,19 @@ class LogParserTest extends DefaultTest {
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals(signature)));
 
 		assertTrue(information.getAll().parallelStream().allMatch(e -> e.getType().equals("Symbol")));
+
+		//If a class exists already, the Symbol must be linked there:
+		aotParser.accept("0x0000000800a8efe8: @@ Class             536 sun.util.locale.BaseLocale");
+		parser.accept("[trace][aot,resolve              ] archived klass  CP entry [  2]: sun/util/locale/BaseLocale boot => java/lang/Object boot");
+		parser.accept("[trace][aot,resolve              ] archived klass  CP entry [  8]: sun/util/locale/BaseLocale boot => sun/util/locale/BaseLocale boot");
+		parser.accept("[trace][aot,resolve              ] archived klass  CP entry [ 28]: sun/util/locale/BaseLocale boot => sun/util/locale/LocaleUtils boot (not supertype)");
+
+		var classObj = (ClassObject) information.getElements("sun.util.locale.BaseLocale",
+				null, null, true, true, "Class").findAny().get();
+		assertEquals(1, classObj.getSymbols().size());
+		parentSymbol = classObj.getSymbols().getFirst();
+		assertEquals(2, parentSymbol.getReferences().size());
+		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("java/lang/Object")));
+		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("sun/util/locale/LocaleUtils")));
 	}
 }

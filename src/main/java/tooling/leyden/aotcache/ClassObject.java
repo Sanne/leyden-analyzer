@@ -4,8 +4,9 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 
 /**
@@ -15,9 +16,10 @@ public class ClassObject extends ReferencingElement {
 
 	private String name;
 	private String packageName;
-	private Set<MethodObject> methods = new HashSet<>();
+	private List<MethodObject> methods = new ArrayList<>();
 	private String arrayPrefix = "";
 	private Element klassTrainingData;
+	private List<ReferencingElement> symbols = new ArrayList<>();
 
 	public ClassObject(String identifier) {
 		this.setName(identifier.substring(identifier.lastIndexOf(".") + 1));
@@ -29,6 +31,7 @@ public class ClassObject extends ReferencingElement {
 	public String getType() {
 		return "Class";
 	}
+
 	public String getKey() {
 		return getPackageName() + "." + getName();
 	}
@@ -41,10 +44,20 @@ public class ClassObject extends ReferencingElement {
 		return arrayPrefix + packageName;
 	}
 
-	public Set<MethodObject> getMethods() {
+	public List<MethodObject> getMethods() {
 		return methods;
 	}
 
+	public List<ReferencingElement> getSymbols() {
+		return symbols;
+	}
+
+	public void addSymbol(ReferencingElement symbol) {
+		if (!this.getSymbols().contains(symbol)) {
+			this.getSymbols().add(symbol);
+			this.getSymbols().sort(Comparator.comparing(Element::getKey));
+		}
+	}
 	public void setName(String name) {
 		this.name = name;
 	}
@@ -71,8 +84,11 @@ public class ClassObject extends ReferencingElement {
 	}
 
 	public void addMethod(MethodObject method) {
-		this.methods.add(method);
-		method.setClassObject(this);
+		if (!this.methods.contains(method)) {
+			this.methods.add(method);
+			method.setClassObject(this);
+			this.getMethods().sort(Comparator.comparing(Element::isTrained).thenComparing(Element::getKey));
+		}
 	}
 
 	public Boolean isArray() {
