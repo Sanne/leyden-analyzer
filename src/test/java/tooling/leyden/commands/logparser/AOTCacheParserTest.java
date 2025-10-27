@@ -67,10 +67,11 @@ class AOTCacheParserTest extends DefaultTest {
 		aotCacheParser.accept("0x00000000fff62900: @@ Object (0xfff62900) java.lang.Float");
 		aotCacheParser.accept("0x00000000ffd0a4c8: @@ Object (0xffd0a4c8) java.lang.String \"| resolve\"");
 		aotCacheParser.accept("0x00000000ffd11068: @@ Object (0xffd11068) java.lang.String \" (success)\"");
+		aotCacheParser.accept("0x00000000ffd07d48: @@ Object (0xffd07d48) java.lang.String \"    \"");
 
-		assertEquals(8, aotCache.getAll().size());
+		assertEquals(9, aotCache.getAll().size());
 		final var objects = aotCache.getElements(null, null, null, true, false, "Object").toList();
-		assertEquals(5, aotCache.getElements(null, null, null, true, false, "Object").count());
+		assertEquals(6, aotCache.getElements(null, null, null, true, false, "Object").count());
 		for (Element e : objects) {
 			assertTrue(e instanceof ReferencingElement);
 			ReferencingElement re = (ReferencingElement) e;

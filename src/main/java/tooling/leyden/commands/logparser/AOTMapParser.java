@@ -167,16 +167,6 @@ public class AOTMapParser implements Consumer<String> {
 
 		//Link to corresponding assets:
 		if (contentParts[4].equalsIgnoreCase("java.lang.String") && contentParts.length > 5) {
-			var string = content.substring(content.indexOf("java.lang.String") + 17);
-			final var withoutQuotes = string.substring(1, string.length() - 1);
-			this.information.getElements(withoutQuotes, null, null,
-					true,true,"ConstantPool", "Symbol")
-					.forEach(element::addReference);
-
-			this.information.getElements(withoutQuotes.replaceAll("/","."),
-					null,null,true,true,"ConstantPool", "Symbol")
-					.forEach(element::addReference);
-
 			//Add the java.lang.String class itself...
 			this.information.getElements("java.lang.String", null, null, true, true,
 							"Class").forEach(element::addReference);
