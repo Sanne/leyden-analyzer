@@ -91,6 +91,9 @@ public class Information {
 	public List<ClassObject> getClassesByName(String name) {
 		return classes.getOrDefault(name, List.of());
 	}
+	public boolean cacheContains(Element e) {
+		return getElements(e.getKey(), null, null, true, false, e.getType()).count() > 0;
+	}
 
 	public Stream<Element> getElements(String key, String[] packageName, String[] excludePackageName,
 									 Boolean includeArrays, Boolean includeExternalElements, String... type) {

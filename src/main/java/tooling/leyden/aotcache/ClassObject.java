@@ -58,6 +58,7 @@ public class ClassObject extends ReferencingElement {
 			this.getSymbols().sort(Comparator.comparing(Element::getKey));
 		}
 	}
+
 	public void setName(String name) {
 		this.name = name;
 	}
@@ -109,6 +110,14 @@ public class ClassObject extends ReferencingElement {
 	public AttributedString getDescription(String leftPadding) {
 		AttributedStringBuilder sb = new AttributedStringBuilder();
 		sb.append(super.getDescription(leftPadding));
+		sb.append(AttributedString.NEWLINE);
+		sb.append(leftPadding + "This class is ");
+		if (!Information.getMyself().cacheContains(this)) {
+			sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED));
+			sb.append("NOT ");
+			sb.style(AttributedStyle.DEFAULT);
+		}
+		sb.append("included in the AOT cache.");
 		int trained = 0;
 		int run = 0;
 		if (!this.getMethods().isEmpty()) {
@@ -124,7 +133,8 @@ public class ClassObject extends ReferencingElement {
 			for (MethodObject method : this.getMethods()) {
 				if (method.getMethodCounters() != null) {
 					run++;
-				} if (method.isTrained()) {
+				}
+				if (method.isTrained()) {
 					trained++;
 				}
 			}
@@ -154,6 +164,7 @@ public class ClassObject extends ReferencingElement {
 						"training run use them.");
 			}
 		}
+
 
 		return sb.toAttributedString();
 	}
