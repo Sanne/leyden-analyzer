@@ -134,22 +134,24 @@ public class LogParser implements Consumer<String> {
 		} else {
 			parentSymbol = new ReferencingElement(parentClassName, "Symbol");
 			information.addExternalElement(parentSymbol, thisSource);
-			// If a class already exists with this Symbol, link it. If not, ignore it.
-			// We will do the heavy creation work on AOT Parser, if any is loaded
-			// because at this point, we don't know anything about the class... except the name
-			// is it cached? is it not? Who knows with this information?
-			var classObj = information.getElements(parentClassName.replaceAll("/", "."), null, null, true, true,
-					"Class").findAny();
-			if (classObj.isPresent()) {
-				((ClassObject) classObj.get()).addSymbol(parentSymbol);
+		}
 
-				// Now search for the corresponding ConstantPool and, if exists, link this class to its poolHolder
-				// again, don't create it, just... wait for an AOT Cache map file if it does not exist yet
-				var cp = information.getElements(parentClassName.replaceAll("/", "."), null, null, true, true,
-						"ConstantPool").findAny();
-				if (cp.isPresent()) {
-					((ConstantPoolObject) cp.get()).setPoolHolder((ClassObject) classObj.get());
-				}
+		// If a class already exists with this Symbol, link it. If not, ignore it.
+		// We will do the heavy creation work on AOT Parser, if any is loaded
+		// because at this point, we don't know anything about the class... except the name
+		// is it cached? is it not? Who knows with this information?
+		var classObj = information.getElements(parentClassName.replaceAll("/", "."), null, null, true, true,
+				"Class").findAny();
+		if (classObj.isPresent()) {
+			((ClassObject) classObj.get()).addSymbol(parentSymbol);
+			parentSymbol.addReference(classObj.get());
+
+			// Now search for the corresponding ConstantPool and, if exists, link this class to its poolHolder
+			// again, don't create it, just... wait for an AOT Cache map file if it does not exist yet
+			var cp = information.getElements(parentClassName.replaceAll("/", "."), null, null, true, true,
+					"ConstantPool").findAny();
+			if (cp.isPresent()) {
+				((ConstantPoolObject) cp.get()).setPoolHolder((ClassObject) classObj.get());
 			}
 		}
 
@@ -165,7 +167,7 @@ public class LogParser implements Consumer<String> {
 			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")));
 			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1));
 		} else if (trimmedMessage.startsWith("archived method")
-					|| trimmedMessage.startsWith("archived interface method")) {
+				|| trimmedMessage.startsWith("archived interface method")) {
 // archived interface method CP entry [ 13]: jdk/jfr/internal/jfc/model/XmlNot java/util/List.size:()I => java/util/List
 // archived method CP entry [338]: jdk/jfr/internal/dcmd/DCmdStart jdk/jfr/internal/dcmd/Argument.<init>
 // :(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZLjava/lang/String;Z)V => jdk/jfr/internal/dcmd/Argument
@@ -195,16 +197,18 @@ public class LogParser implements Consumer<String> {
 		} else {
 			referencedSymbol = new ReferencingElement(symbolName, "Symbol");
 			information.addExternalElement(referencedSymbol, thisSource);
-
-			// If a class already exists with this Symbol, link it. If not, ignore it.
-			// We will fill it when an AOT Cache loads, if it loads
-			// (maybe it is not even a class, so don't care if this fails)
-			var classObj = information.getElements(symbolName.replaceAll("/", "."), null, null, true, true,
-					"Class").findAny();
-			if (classObj.isPresent()) {
-				((ClassObject) classObj.get()).addSymbol(referencedSymbol);
-			}
 		}
+
+		// If a class already exists with this Symbol, link it. If not, ignore it.
+		// We will fill it when an AOT Cache loads, if it loads
+		// (maybe it is not even a class, so don't care if this fails)
+		var classObj = information.getElements(symbolName.replaceAll("/", "."), null, null, true, true,
+				"Class").findAny();
+		if (classObj.isPresent()) {
+			((ClassObject) classObj.get()).addSymbol(referencedSymbol);
+			referencedSymbol.addReference(classObj.get());
+		}
+
 		referencedSymbol.addWhereDoesItComeFrom(source);
 		parentSymbol.addReference(referencedSymbol);
 	}
@@ -374,12 +378,12 @@ public class LogParser implements Consumer<String> {
 	}
 
 	//[1055.926s][warning][aot] Skipping org/apache/logging/log4j/core/async/AsyncLoggerContext: Failed verification
-	//[1055.928s][warning][aot] Skipping org/apache/logging/slf4j/Log4jLoggerFactory$$Lambda+0x800000258: nest_host class org/apache/logging/slf4j/Log4jLoggerFactory is excluded
-	//[1055.928s][warning][aot] Skipping jdk/proxy1/$Proxy29: Unsupported location
-	//[1055.929s][warning][aot] Skipping org/slf4j/ILoggerFactory: Old class has been linked
-	//[1055.929s][warning][aot] Skipping jdk/internal/event/SecurityProviderServiceEvent: JFR event class
-	//[1055.929s][warning][aot] Skipping com/thoughtworks/xstream/security/ForbiddenClassException: Unlinked class not supported by AOTConfiguration
-	//[warning][aot] Skipping java/lang/invoke/BoundMethodHandle$Species_LI because it is dynamically generated
+//[1055.928s][warning][aot] Skipping org/apache/logging/slf4j/Log4jLoggerFactory$$Lambda+0x800000258: nest_host class org/apache/logging/slf4j/Log4jLoggerFactory is excluded
+//[1055.928s][warning][aot] Skipping jdk/proxy1/$Proxy29: Unsupported location
+//[1055.929s][warning][aot] Skipping org/slf4j/ILoggerFactory: Old class has been linked
+//[1055.929s][warning][aot] Skipping jdk/internal/event/SecurityProviderServiceEvent: JFR event class
+//[1055.929s][warning][aot] Skipping com/thoughtworks/xstream/security/ForbiddenClassException: Unlinked class not supported by AOTConfiguration
+//[warning][aot] Skipping java/lang/invoke/BoundMethodHandle$Species_LI because it is dynamically generated
 	private void processSkipping(String message) {
 		String[] msg = message.trim().split("\\s+");
 		String className = msg[1].replace("/", ".").replace(":", "").trim();

@@ -204,9 +204,10 @@ class LogParserTest extends DefaultTest {
 		assertEquals(1, classObj.getSymbols().size());
 		parentSymbol = classObj.getSymbols().getFirst();
 		assertEquals(classObj.getKey(), parentSymbol.getKey().replaceAll("/", "."));
-		assertEquals(2, parentSymbol.getReferences().size());
+		assertEquals(3, parentSymbol.getReferences().size());
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("java/lang/Object")));
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("sun/util/locale/LocaleUtils")));
+		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getType().equals("Class")));
 
 		var cp = (ConstantPoolObject) information.getElements("sun.util.locale.BaseLocale",
 				null, null, true, true, "ConstantPool").findAny().get();
