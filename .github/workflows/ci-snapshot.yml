@@ -49,6 +49,8 @@ jobs:
   find-older-snapshots:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     outputs:
       tags: ${{ steps.find-older-tags.outputs.tags }}
