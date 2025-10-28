@@ -26,7 +26,7 @@ class LogParserTest extends DefaultTest {
 	@ValueSource(strings = {"aot.log", "aot.log.0", "aot.log.1"})
 	void addElements(String file) throws Exception {
 		File f = new File(getClass().getResource(file).getPath());
-		getSystemRegistry().execute("load log " + f.getAbsolutePath());
+		getSystemRegistry().execute("load productionLog " + f.getAbsolutePath());
 		final var aotCache = getDefaultCommand().getInformation();
 
 		//Now check individual values
@@ -46,7 +46,7 @@ class LogParserTest extends DefaultTest {
 	void addCreationWarnings() throws Exception {
 		File f = new File(getClass().getResource("aot.log.0").getPath());
 		File f2 = new File(getClass().getResource("aot.log.1").getPath());
-		getSystemRegistry().execute("load log " + f.getAbsolutePath() + " " + f2.getAbsolutePath());
+		getSystemRegistry().execute("load trainingLog " + f.getAbsolutePath() + " " + f2.getAbsolutePath());
 		final var aotCache = getDefaultCommand().getInformation();
 		assertFalse(aotCache.getWarnings().isEmpty());
 	}
@@ -54,7 +54,7 @@ class LogParserTest extends DefaultTest {
 	@Test
 	void addLoadingLog() throws Exception {
 		File f = new File(getClass().getResource("aot.log.loading").getPath());
-		getSystemRegistry().execute("load log " + f.getAbsolutePath());
+		getSystemRegistry().execute("load productionLog " + f.getAbsolutePath());
 
 		final var aotCache = getDefaultCommand().getInformation();
 
@@ -84,7 +84,7 @@ class LogParserTest extends DefaultTest {
 		final var loadFile = new LoadFileCommand();
 		loadFile.setParent(getDefaultCommand());
 		final var information = loadFile.getParent().getInformation();
-		final var parser = new LogParser(loadFile);
+		final var parser = new TrainingLogParser(loadFile);
 		final var aotParser = new AOTMapParser(loadFile);
 
 		parser.accept("[info ][aot,resolve              ] Archiving CP entries for org/infinispan/rest/framework/impl/InvocationImpl");

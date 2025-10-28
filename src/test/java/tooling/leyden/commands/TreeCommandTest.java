@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.Information;
 import tooling.leyden.commands.logparser.AOTMapParser;
-import tooling.leyden.commands.logparser.LogParser;
+import tooling.leyden.commands.logparser.TrainingLogParser;
 
 import java.util.Set;
 
@@ -13,13 +13,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
+
 class TreeCommandTest extends DefaultTest {
 
 	@Test
 	void getReferencedFromSymbolGraph() {
 		final var loadFile = new LoadFileCommand();
 		loadFile.setParent(getDefaultCommand());
-		final var parser = new LogParser(loadFile);
+		final var parser = new TrainingLogParser(loadFile);
 		final var aotParser = new AOTMapParser(loadFile);
 
 		aotParser.accept("0x00000008018dfad0: @@ Class             696 org.infinispan.rest.framework.impl.InvocationImpl");

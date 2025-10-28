@@ -5,7 +5,8 @@ import org.jline.utils.AttributedStyle;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import tooling.leyden.commands.logparser.AOTMapParser;
-import tooling.leyden.commands.logparser.LogParser;
+import tooling.leyden.commands.logparser.ProductionLogParser;
+import tooling.leyden.commands.logparser.TrainingLogParser;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -21,6 +22,10 @@ import java.util.function.Consumer;
 		description = {"Load a file to extract information."},
 		subcommands = {CommandLine.HelpCommand.class})
 public class LoadFileCommand implements Runnable {
+
+	final private String logParameters = "-Xlog:class+load,aot+training=trace,aot+codecache*=trace," +
+			"aot+resolve*=trace," +
+			"aot=warning:file=aot.log:level,tags";
 
 	@CommandLine.ParentCommand
 	DefaultCommand parent;
@@ -72,7 +77,6 @@ public class LoadFileCommand implements Runnable {
 					AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.BLUE))
 					.println(parent.getTerminal());
 		}
-		parent.getOut().flush();
 
 		try (Scanner scanner = new Scanner(Files.newInputStream(path), StandardCharsets.UTF_8)) {
 			while (scanner.hasNextLine()) {
@@ -84,33 +88,54 @@ public class LoadFileCommand implements Runnable {
 				}
 			}
 		} catch (Exception e) {
-			parent.getOut().println("ERROR: Loading " + path.getFileName());
-			parent.getOut().println("ERROR: " + e.getMessage());
+			(new AttributedString("ERROR: Loading " + path.getFileName(),
+					AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED))).println(parent.getTerminal());
+			(new AttributedString(e.getMessage(),
+					AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED))).println(parent.getTerminal());
 		}
 
 		AttributedString attributedString = new AttributedString("File " + path.toAbsolutePath().getFileName()
 				+ " added in " + (System.currentTimeMillis() - time) + "ms.",
 				AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
 		attributedString.println(parent.getTerminal());
-		parent.getOut().flush();
 	}
 
-	@Command(mixinStandardHelpOptions = true, version = "1.0", subcommands = {
-			CommandLine.HelpCommand.class}, description = "Load an AOT Map cache generated with " +
-			"-Xlog:aot+map=trace:file=aot.map:none:filesize=0")
+	@Command(
+			version = "1.0",
+			subcommands = {CommandLine.HelpCommand.class},
+			description = "Load an AOT Cache map file generated with -Xlog:aot+map=trace:file=aot.map:none:filesize=0")
 	public void aotCache(
-			@CommandLine.Parameters(arity = "1..*", paramLabel = "<file>",
-					description = "file to load") Path[] files) {
+			@CommandLine.Parameters(
+					arity = "1..*",
+					paramLabel = "<file>",
+					description = "files to load") Path[] files) {
 		load(new AOTMapParser(this), files);
 	}
 
-	@Command(mixinStandardHelpOptions = true, version = "1.0", subcommands = {
-			CommandLine.HelpCommand.class}, description = "Load a log generated with " +
-			"-Xlog:class+load,aot*=warning:file=aot.log:level,tags")
-	public void log(
-			@CommandLine.Parameters(arity = "1..*", paramLabel = "<file>",
-					description = "file to load") Path[] files) {
-		load(new LogParser(this), files);
+	@Command(
+			version = "1.0",
+			subcommands = {CommandLine.HelpCommand.class},
+			description = "Load a production log generated with " + logParameters
+	)
+	public void productionLog(
+			@CommandLine.Parameters(
+					arity = "1..*",
+					paramLabel = "<file>",
+					description = "files to load") Path[] files) {
+		load(new ProductionLogParser(this), files);
+	}
+
+	@Command(
+			version = "1.0",
+			subcommands = {CommandLine.HelpCommand.class},
+			description = "Load a training (and assembly) log generated with " + logParameters
+	)
+	public void trainingLog(
+			@CommandLine.Parameters(
+					arity = "1..*",
+					paramLabel = "<file>",
+					description = "files to load") Path[] files) {
+		load(new TrainingLogParser(this), files);
 	}
 
 	public DefaultCommand getParent() {
