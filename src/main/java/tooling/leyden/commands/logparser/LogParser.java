@@ -207,6 +207,17 @@ public class LogParser implements Consumer<String> {
 		if (classObj.isPresent()) {
 			((ClassObject) classObj.get()).addSymbol(referencedSymbol);
 			referencedSymbol.addReference(classObj.get());
+		}  else if (symbolName.startsWith("L") && symbolName.endsWith(";")) {
+			classObj =
+					this.information.getElements(symbolName.replaceAll("/", ".").substring(1, symbolName.length() - 1),
+							null,
+							null, true,
+							true,
+							"Class").findAny();
+			if (classObj.isPresent()) {
+				((ClassObject) classObj.get()).addSymbol((ReferencingElement) referencedSymbol);
+				referencedSymbol.addReference(classObj.get());
+			}
 		}
 
 		referencedSymbol.addWhereDoesItComeFrom(source);

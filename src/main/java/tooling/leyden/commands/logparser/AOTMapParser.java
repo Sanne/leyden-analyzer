@@ -208,8 +208,7 @@ public class AOTMapParser implements Consumer<String> {
 						"Class").findAny();
 		if (classObject.isPresent()) {
 			((ClassObject) classObject.get()).addSymbol((ReferencingElement) element);
-		}
-		if (identifier.startsWith("L") && identifier.endsWith(";")) {
+		} else if (identifier.startsWith("L") && identifier.endsWith(";")) {
 			classObject =
 					this.information.getElements(identifier.replaceAll("/", ".").substring(1, identifier.length() - 1),
 							null,

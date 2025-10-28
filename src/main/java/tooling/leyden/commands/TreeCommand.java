@@ -33,14 +33,14 @@ class TreeCommand implements Runnable {
 	DefaultCommand parent;
 
 	@CommandLine.Mixin
-	private CommonParameters parameters;
+	CommonParameters parameters;
 
 	@CommandLine.Option(names = {"-l", "--level"},
 			description = {"Maximum number of tree levels to display."},
 			defaultValue = "3",
 			arity = "0..*",
 			paramLabel = "<N>")
-	protected Integer level;
+	Integer level;
 
 	@CommandLine.Option(names = {"-max"},
 			description = {"Maximum number of elements to display. By default, 100. If using -1, it shows all " +
@@ -48,7 +48,7 @@ class TreeCommand implements Runnable {
 			defaultValue = "100",
 			arity = "0..*",
 			paramLabel = "<N>")
-	protected Integer max;
+	Integer max;
 
 	@CommandLine.Option(names = {"-r", "--reverse"},
 			description = {
@@ -56,7 +56,7 @@ class TreeCommand implements Runnable {
 			defaultValue = "false",
 			arity = "0..1",
 			paramLabel = "<true>")
-	protected Boolean reverse;
+	Boolean reverse;
 
 	public void run() {
 
@@ -129,7 +129,7 @@ class TreeCommand implements Runnable {
 		}
 	}
 
-	private Set<Element> getElementsReferencingThisOne(Element element) {
+	Set<Element> getElementsReferencingThisOne(Element element) {
 		var referenced = new HashSet<Element>();
 		final var includeSymbols = Arrays.stream(parameters.types)
 				.anyMatch(t -> t.equalsIgnoreCase("Symbol"));
