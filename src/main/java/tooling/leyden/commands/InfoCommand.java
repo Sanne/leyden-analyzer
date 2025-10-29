@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 @Command(name = "info", mixinStandardHelpOptions = true,
 		version = "1.0",
@@ -41,7 +43,27 @@ class InfoCommand implements Runnable {
 			print(InfoCommandTypes.Types.Configuration.name(), parent.getInformation().getConfiguration());
 		if (shouldShow(InfoCommandTypes.Types.Summary.name())) {
 			printSummary();
+		} if (shouldShow(InfoCommandTypes.Types.Count.name())) {
+			count();
 		}
+	}
+
+	public void count() {
+		Stream<Element> elements = parent.getInformation().getElements(null, null, null, true, true, null);
+		final var counts = new HashMap<String, AtomicInteger>();
+
+		elements.forEach(item -> {
+			counts.putIfAbsent(item.getType(), new AtomicInteger());
+			counts.get(counts.get(item.getType()).incrementAndGet());
+		});
+
+		counts.entrySet().
+				stream().
+				sorted(Map.Entry.comparingByKey())
+				.forEach(entry ->
+						parent.getOut().
+								println("There are " + entry.getValue().get()
+										+ " elements of type " + entry.getKey() + "."));
 	}
 
 	private boolean shouldShow(String s) {

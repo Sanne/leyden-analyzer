@@ -9,6 +9,7 @@ public class InfoCommandTypes implements Iterable<String> {
 
 	public enum Types {
 		Configuration,
+		Count,
 		Summary;
 	}
 
