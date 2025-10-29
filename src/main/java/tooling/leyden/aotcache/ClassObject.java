@@ -33,7 +33,7 @@ public class ClassObject extends ReferencingElement {
 	}
 
 	public String getKey() {
-		return getPackageName() + "." + getName();
+		return arrayPrefix + getPackageName() + "." + getName();
 	}
 
 	public String getName() {
@@ -41,7 +41,7 @@ public class ClassObject extends ReferencingElement {
 	}
 
 	public String getPackageName() {
-		return arrayPrefix + packageName;
+		return packageName;
 	}
 
 	public List<MethodObject> getMethods() {
