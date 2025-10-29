@@ -3,6 +3,7 @@ package tooling.leyden.aotcache;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,13 +25,12 @@ public class Information {
 	//Auto-generated warnings by `warning check` command
 	private List<Warning> autoWarnings = new ArrayList<>();
 
-	//We keep classes also here to search for them by name, not package
-	//It will make sense when we link Symbols of the form Name.java
-	private Map<String, List<ClassObject>> classes = new ConcurrentHashMap<>();
-
 	//Store information extracted and inferred
 	private Configuration configuration = new Configuration();
 	private Configuration statistics = new Configuration();
+
+	//To pre-calculate auto-completion
+	private List<String> identifiers = new ArrayList<>();
 
 	//Singletonish
 	private static Information myself;
@@ -47,19 +47,19 @@ public class Information {
 		e.addSource(source);
 		final var key = new Key(e.getKey(), e.getType());
 		elements.put(key, e);
-		if (e instanceof ClassObject classObject) {
-			if (!this.classes.containsKey(classObject.getName())) {
-				this.classes.put(classObject.getName(), new ArrayList<>());
-			}
-			this.classes.get(classObject.getName()).add(classObject);
-		}
 
+		// Due to weird ordering in logfiles, sometimes a method gets
 		// Due to weird ordering in logfiles, sometimes a method gets
 		// referenced before the class it belongs to gets referenced.
 		// So we have to make sure elements are not repeated both in
 		// this.elements and this.elementsNotInTheCache
 		if (elementsNotInTheCache.containsKey(key)) {
 			elementsNotInTheCache.remove(key);
+		}
+
+		// Pre-calculate auto-completions
+		if (e.getType().equalsIgnoreCase("Class") && !identifiers.contains(e.getKey())) {
+			identifiers.add(e.getKey());
 		}
 	}
 
@@ -81,13 +81,9 @@ public class Information {
 		elementsNotInTheCache.clear();
 		warnings.clear();
 		autoWarnings.clear();
-		classes.clear();
 		statistics.clear();
 		configuration.clear();
-	}
-
-	public List<ClassObject> getClassesByName(String name) {
-		return classes.getOrDefault(name, List.of());
+		identifiers.clear();
 	}
 	public boolean cacheContains(Element e) {
 		return getElements(e.getKey(), null, null, true, false, e.getType()).count() > 0;
@@ -223,6 +219,10 @@ public class Information {
 				.map(entry -> ((ClassObject) entry.getValue()).getPackageName())
 				.distinct()
 				.toList();
+	}
+
+	public List<String> getIdentifiers() {
+		return List.copyOf(identifiers);
 	}
 
 	public record Key(String identifier, String type) {
