@@ -24,7 +24,7 @@ The analyzer uses [picocli](https://picocli.info) and [JLine](https://github.com
 
 There is a `help` command that is very self-explanatory. Please, use it. 
 
-You can jump to the **[example of usage](#example-of-usage)** if you are in a hurry, but that does not contain all the possiblities this tool offers. Really, use the `help` command. Documentation matters.
+You can jump to the **[example of usage](#examples-of-usage)** if you are in a hurry, but that does not contain all the possiblities this tool offers. Really, use the `help` command. Documentation matters.
 
 ### Colors
 
@@ -34,32 +34,33 @@ This tool uses a lot of colors to make reading and understanding of the content 
 * Red: Warning, bad, note this.
 * Yellow: Type of asset. Typically, it can be Method, Class, TrainingData,...
 * Cyan: Identifier for a Class, Method, Warning,...
+
 ### Load some information
 
-You should start by using the `load` command to load different files. We can load java logs of our app generated 
-with `-Xlog:class+load,aot*=warning:file=aot.log:tags` :
+You should start by using the `load` command to load information from different sources.
 
-```bash
-> load log aot.log.0 aot.log
-Adding aot.log.0 to our analysis...
-File aot.log.0 added in 223ms.
-Adding aot.log to our analysis...
-File aot.log added in 175ms.
-Adding aot.log.1 to our analysis...
-Rewriting value for 'ArchiveRelocationMode' previously it was ' 0'.
-Rewriting value for 'initial full module graph' previously it was 'enabled'.
-Rewriting value for 'Using AOT-linked classes' previously it was 'true (static archive: has aot-linked classes)'.
-File aot.log.1 added in 17ms.
-Adding aot.log.loading to our analysis...
-File aot.log.loading added in 196ms.
-```
+Loading an AOT Cache Map File gives a better overview on what the cache contains.
+
+Loading log files gives a better overview of why things are (or are not) in the cache and detect potential errors.
+
+> **Do not mix logs and caches from different runs.**
+>
+> That will lead to inconsistent and wrong analysis.
+> If you mix production and training runs, there's no way
+> we can distinguish if an issue happened during the
+> creation of the cache or during the loading of the cache.
+
+You may mix logs and aot map files from the same training or production run. Then, the information will complement each other. It is recommended to load first the AOT cache map so when processing the log we already have the details about the elements inside the cache.
 
 There is a status bar on the bottom of the interactive console showing the current elements loaded in our playground:
 ```
 Our Playground contains: 9014 elements | 768 packages | 2 element types | 42 warnings  
 ```
-And we can add an AOT map file generated with `-Xlog:aot+map=trace:file=aot.
-map:none:filesize=0`
+
+#### Load an AOT Map File
+
+This is usually the first step. We can add an AOT map file, which are generated with the argument `-Xlog:aot+map=trace:file=aot.
+map:none:filesize=0` when executing a training run.
 
 ```bash
 > load aotCache aot.map
@@ -69,18 +70,27 @@ Consider using the `--background` option to load this file.
 File aot.map added in 5478ms.
 ```
 
-Loading the AOT Map gives a better overview on what the cache contains. 
+After loading the AOT Map File, we can explore the elements that have been saved in the AOT Cache.
 
-Loading log files gives a better overview of why things are (or are not) in the cache and detect potential errors.
+#### Load logs
 
-> **Do not mix logs and caches from different runs.**
-> 
-> That will lead to inconsistent and wrong analysis.
-> If you mix production and training runs, there's no way
-> we can distinguish if an issue happened during the 
-> creation of the cache or during the loading of the cache.
+We can load logs for the training or the production run.
 
-You may mix logs and aot map files from the same training or production run. Then, the information will complement each other. It is recommended to load first the AOT cache map so when processing the log we already have the details about the elements inside the cache.
+```bash
+> load productionLog log.production
+```
+```
+Adding log.production to our analysis...
+File log.production added in 280ms.
+```
+
+```bash
+> load trainingLog /home/delawen/infinispan-server-15.2.5.Final/log.training
+```
+```
+Adding log.training to our analysis...
+File log.training added in 2925ms.
+```
 
 After loading some information, we can start the analysis.
 
@@ -90,31 +100,35 @@ The `info` command is very useful to get a general idea of what is happening in 
 
 ```bash
 > info
+```
+```
 RUN SUMMARY: 
 Classes loaded: 
-  -> Cached:2.791 (18,41 %)
-  -> Not Cached:12.372 (81,59 %)
+  -> Cached:8.802 (82,87 %)
+  -> Not Cached:1.819 (17,13 %)
 Lambda Methods loaded: 
-  -> Cached:0 (-0,00 %)
-  -> Not Cached:1.934 (100,00 %)
-  -> Portion of methods that are lambda: 1.933 (1,59 %)
+  -> Cached:197 (11,28 %)
+  -> Not Cached:1.550 (88,72 %)
+  -> Portion of methods that are lambda: 1.747 (1,44 %)
+Code Entries: 493
+  -> Adapters: 493 (100,00 %)
+  -> Shared Blobs: 0 (0,00 %)
+  -> C1 Blobs: 0 (0,00 %)
+  -> C2 Blobs: 0 (0,00 %)
+AOT code cache size: 598432 bytes
 AOT CACHE SUMMARY: 
-Classes in AOT Cache: 2.791
-  -> KlassTrainingData: 964 (34,54 %)
-Objects in AOT Cache: 50.709
-Methods in AOT Cache: 121.387
-  -> MethodCounters: 6.509 (5,36 %)
-  -> MethodData: 4.133 (3,40 %)
-  -> MethodTrainingData: 4.661 (3,84 %)
+Classes in AOT Cache: 8.802
+  -> KlassTrainingData: 1.015 (11,53 %)
+Objects in AOT Cache: 50.718
+Methods in AOT Cache: 121.392
+  -> MethodCounters: 7.014 (5,78 %)
+  -> MethodData: 4.566 (3,76 %)
+  -> MethodTrainingData: 5.189 (4,27 %)
   -> CompileTrainingData: 
-      -> Level 1: 475 (0,39 %)
-      -> Level 3: 2.780 (2,29 %)
-      -> Level 4: 554 (0,46 %)
-Adapters: 
-  -> AdapterFingerPrint: 493
-  -> AdapterHandlerEntry: 493
-RecordComponent: 134
-Misc Data: 2
+      -> Level 1: 510 (0,42 %)
+      -> Level 3: 3.121 (2,57 %)
+      -> Level 4: 671 (0,55 %)
+
 ```
 
 ### Listing assets
@@ -149,6 +163,7 @@ We can filter by type of element and package (the parameters are auto-completabl
 [ConstantPool] sun.util.locale.provider.LocaleResources$ResourceReference
 Found 32 elements.
 ```
+
 ### Search for warnings
 
 We can also explore the potential errors/warnings/incidents. They may have been loaded from a log file or they can be auto-detected.
@@ -164,9 +179,13 @@ n't be stored into the AOTcache because: Failed verification
 Found 4 warnings.
 ```
 
-If you want to auto-detect issues, you can run the command `warning check <n>` limiting the search for each type of warning to `n`, which will show the `n`-most relevant warnings.
+When listing, the search can be limited for each type of warning with `warning <n>`, which will show the `n`-most relevant warnings per type.
+
+If you want to auto-detect issues, you can run the command `warning check`.
 
 ```bash
+```
+```
 > warning check 3
 Trying to detect problems...
 000 [Unknown] Preload Warning: Verification failed for org.infinispan.remoting.transport.jgroups.JGroupsRaftManager
@@ -187,7 +206,7 @@ ining (don't have some of the TrainingData objects associated to them).
 Found 10 warnings.
 The auto-detected issues may or may not be problematic.
 It is up to the developer to decide that.
-``````
+```
 
 > **The auto-detected issues may or may not be problematic. It is up to the developer to decide that.**
 
@@ -200,12 +219,16 @@ To explore a bit more about what is on stored on the cache, we can use the comma
 Depending on if it was loaded from one type of file or another, the details may vary:
 
 ```bash
+> describe -i=java.util.stream.Collectors -t=Class
+```
+```
 -----
-|  Class org.infinispan.server.loader.Loader on address 0x0000000800a59208 with size 528.
+|  Class java.util.stream.Collectors on address 0x00000008008366e0 with size 528.
 |  This information comes from: 
+|    > Production log
 |    > AOT Map
-|    > Java Log
-|  This class has 5 Methods, of which 1 have been run and 1 have been trained.
+|  This class is included in the AOT cache.
+|  This class has 141 Methods, of which 6 have been run and 6 have been trained.
 |  It has a KlassTrainingData associated to it.
 -----
 ```
@@ -213,17 +236,20 @@ Depending on if it was loaded from one type of file or another, the details may 
 It has a verbose option to show a bit more info:
 
 ```bash
+> describe -i=org.infinispan.server.loader.Loader -t=Class -v
+```
+```
 -----
-|  Class org.infinispan.server.loader.Loader on address 0x0000000800a59208 with size 528.
-|  This information comes from: 
+|  Class org.infinispan.server.loader.Loader on address 0x0000000800a595a0 with size 528.
+|  This information comes from:
+|    > Production log
 |    > AOT Map
-|    > Java Log
+|  This class is included in the AOT cache.
 |  This class has 5 Methods, of which 1 have been run and 1 have been trained.
 |  It has a KlassTrainingData associated to it.
 |  There are no elements referenced from this element.
-|  Elements that refer to this element: 
+|  Elements that refer to this element:
 |    _____
-|    | [ConstantPool] org.infinispan.server.loader.Loader
 |    | [KlassTrainingData] org.infinispan.server.loader.Loader
 |    | [Untrained][Method] void org.infinispan.server.loader.Loader.main(java.lang.String[])
 |    | [Untrained][Method] void org.infinispan.server.loader.Loader.<init>()
@@ -231,46 +257,63 @@ It has a verbose option to show a bit more info:
 |    | [Untrained][Method] java.lang.ClassLoader org.infinispan.server.loader.Loader.classLoaderFromPath(java.nio.file
 .Path, java.lang.ClassLoader)
 |    | [Trained][Method] java.lang.String org.infinispan.server.loader.Loader.extractArtifactName(java.lang.String)
-|    | [Symbol] Loader.java
 |    | [Symbol] org/infinispan/server/loader/Loader
 |    _____
 -----
+
 ```
 
 #### Tree information
 
-The `tree` command shows related elements. It can be used with the `describe` command to check details on elements inside the AOT Cache.
+The `tree` command shows related classes (although you can tweak the parameters to show more than classes). It can be used with the `describe` command to check details on elements inside the AOT Cache.
 
-To avoid infinite loops and circular references, each element will be iterated over on the tree only once. Elements that have already appeared on the tree will be colored blue and will not have children.
+The basic tree command shows the graph dependency of what classes are used by the root class. This is useful to understand what classes does the root class trigger to be inside the cache. 
+
+**This graph is strongly based on a training log, so you must load it before getting the right information.**
 
 ```bash
-> tree -i=org.infinispan.xsite.NoOpBackupSender --level=0
-+ [Untrained][Class] org.infinispan.xsite.NoOpBackupSender
- \
-  + [Untrained][Method] java.lang.String org.infinispan.xsite.NoOpBackupSender.toString()
-  |
-  + [Untrained][Method] org.infinispan.interceptors.InvocationStage org.infinispan.xsite.NoOpBackupSender.backupPrepar
-e(org.infinispan.commands.tx.PrepareCommand, org.infinispan.transaction.impl.AbstractCacheTransaction, jakarta.transac
-tion.Transaction)
-  |
-  + [Untrained][Method] org.infinispan.interceptors.InvocationStage org.infinispan.xsite.NoOpBackupSender.backupCommit
-(org.infinispan.commands.tx.CommitCommand, jakarta.transaction.Transaction)
-  |
-  + [Untrained][Method] org.infinispan.interceptors.InvocationStage org.infinispan.xsite.NoOpBackupSender.backupRollba
-ck(org.infinispan.commands.tx.RollbackCommand, jakarta.transaction.Transaction)
-  |
-  + [Untrained][Method] org.infinispan.interceptors.InvocationStage org.infinispan.xsite.NoOpBackupSender.backupWrite(
-org.infinispan.commands.write.WriteCommand, org.infinispan.commands.write.WriteCommand)
-  |
-  + [Untrained][Method] org.infinispan.interceptors.InvocationStage org.infinispan.xsite.NoOpBackupSender.backupClear(
-org.infinispan.commands.write.ClearCommand)
-  |
-  + [Untrained][Method] void org.infinispan.xsite.NoOpBackupSender.<init>()
-  |
-  + [Untrained][Method] void org.infinispan.xsite.NoOpBackupSender.<clinit>()
-  |
-  + [Trained][Method] org.infinispan.xsite.NoOpBackupSender org.infinispan.xsite.NoOpBackupSender.getInstance()
+> tree -i=java.util.List  -max=5
 ```
+```
+Calculating dependency graph... 
++ [Trained][Class] java.util.List
+ \
+  + [Untrained][Class] java.util.RandomAccess
+  |
+  + [Trained][Class] java.util.AbstractList$RandomAccessSpliterator
+   \
+    + [Trained][Class] java.lang.Object
+     \
+      + [Object] (0xffe820c0) java.lang.Object
+       \
+        - [Trained][Class] java.lang.Object
+      |
+      + [Object] (0xffe820e0) java.lang.Object
+```
+
+There is also a `reverse` argument to show which classes use the root class. This is useful to understand why this class was loaded into the cache, as it shows who triggered its allocation in memory.
+
+```bash
+> tree -i=java.util.List  -max=5 --reverse
+```
+```
+Calculating dependency graph... 
++ [Trained][Class] java.util.List
+ \
+  + [Untrained][Class] io.netty.buffer.PooledByteBufAllocator
+   \
+    + [Untrained][Class] io.netty.buffer.PoolArena
+     \
+      + [Untrained][Class] io.netty.buffer.PoolChunkList
+       \
+        - [Untrained][Class] io.netty.buffer.PoolArena
+      |
+      + [Untrained][Class] io.netty.buffer.PoolArena$DirectArena
+      |
+      + [Untrained][Class] io.netty.buffer.PoolArena$HeapArena
+```
+
+To avoid infinite loops and circular references, each element will be iterated over on the tree only once. Elements that have already appeared on the tree will be colored blue and will not have children.
 
 ### Cleanup
 
@@ -287,13 +330,127 @@ Found 0 elements.
 
 Just `exit`.
 
-## Example of Usage
+## Examples of Usage
 
 The following section contains examples on how to use this tool to improve your training runs and get better performance thanks to the AOT Cache in Java.
 
-### Detecting classes that should have been run but were not fully trained
+* [Why is this class in my AOT cache?](why-is-this-class-in-my-aot-cache)
+* [Why is this class NOT in my AOT cache?](why-is-this-class-not-in-my-aot-cache)
+* [Why is this method not properly trained?](why-is-this-method-not-properly-trained)
 
-The title is self-explanatory.
+### Why is this class in my AOT cache? 
+
+We start by loading an aot cache map file to the tool:
+
+```bash
+load aotCache aot.map
+```
+```
+Adding aot.map to our analysis...
+This is a big file. The size of this file is 395 MB. This may take a while.
+Consider using the `--background` option to load this file.
+File aot.map added in 10108ms.
+```
+And then we load a training log run to generate the dependency graph of classes.
+
+```bash
+load trainingLog /home/delawen/infinispan-server-15.2.5.Final/log.training
+```
+```
+Adding log.training to our analysis...
+File log.training added in 2095ms.
+> File aot.map added in 16466ms.
+```
+
+Now we just simply run the `tree` command to see which classes are used by my root class. Note that this can be a very long graph, you can use `n`, `-epn`, `-max`, and `--level` arguments to filter them out.
+
+```bash
+> tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan
+```
+```
+Calculating dependency graph...
++ [Untrained][Class] org.infinispan.configuration.cache.Configuration
+  \
+    + [Untrained][Class] org.infinispan.configuration.cache.UnsafeConfiguration
+      \
+        + [Untrained][Class] org.infinispan.commons.configuration.attributes.ConfigurationElement
+          \
+            + [Untrained][Class] [Lorg.infinispan.commons.configuration.attributes.ConfigurationElement;
+              |
+            + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeSet
+              |
+        + [Untrained][Class] org.infinispan.commons.configuration.attributes.Attribute
+          \
+            + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeDefinition
+              \
+                + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeCopier
+                  |
+                + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeInitializer
+                  |
+                + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeMatcher
+[...]
+```
+
+### Which classes do this class drag into the cache?
+
+We start by loading an aot cache map file to the tool:
+
+```bash
+load aotCache aot.map
+```
+```
+Adding aot.map to our analysis...
+This is a big file. The size of this file is 395 MB. This may take a while.
+Consider using the `--background` option to load this file.
+File aot.map added in 10108ms.
+```
+And then we load a training log run to generate the dependency graph of classes.
+
+```bash
+load trainingLog /home/delawen/infinispan-server-15.2.5.Final/log.training
+```
+```
+Adding log.training to our analysis...
+File log.training added in 2095ms.
+> File aot.map added in 16466ms.
+```
+
+Now we just simply run the `tree --reverse` command to see which classes use my root class. Note that this can be a very long graph, you can use `n`, `-epn`, `-max`, and `--level` arguments to filter them out.
+```bash
+> tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan --reverse
+```
+```
+Calculating dependency graph... 
++ [Untrained][Class] org.infinispan.configuration.cache.Configuration
+ \
+  + [Untrained][Class] org.infinispan.eviction.impl.ActivationManagerImpl
+  |
+  + [Untrained][Class] org.infinispan.interceptors.impl.JmxStatsCommandInterceptor
+   \
+    + [Untrained][Class] org.infinispan.interceptors.impl.CacheLoaderInterceptor
+     \
+      + [Untrained][Class] org.infinispan.interceptors.impl.PassivationCacheLoaderInterceptor
+      |
+      + [Untrained][Class] org.infinispan.interceptors.impl.ClusteredCacheLoaderInterceptor
+    |
+    + [Untrained][Class] org.infinispan.interceptors.impl.CacheMgmtInterceptor
+     \
+      + [Untrained][Class] org.infinispan.factories.InternalCacheFactory$StatsCache
+      |
+      + [Untrained][Class] org.infinispan.eviction.impl.EvictionManagerImpl
+    |
+    + [Untrained][Class] org.infinispan.interceptors.impl.CacheWriterInterceptor
+     \
+      + [Untrained][Class] org.infinispan.interceptors.impl.DistCacheWriterInterceptor
+
+[...]
+```
+
+### Why is this class NOT in my AOT cache?
+
+//TODO
+
+### Why is this method not properly trained?
 
 #### Loading the information
 
@@ -392,36 +549,3 @@ I can also check what is happening on the main class for that method:
 |  This class doesn't seem to have training data. 
 -----
 ```
-
-I can see the list of trained and untrained methods for that class using the `tree` command, where I use level=0 because I don't need any depth on the tree to search for what I am looking for.
-
-```bash
-tree -i=org.infinispan.xsite.NoOpBackupSender --level=0
-```
-```
-+ [Untrained][Class] org.infinispan.xsite.NoOpBackupSender
- \
-  + [Untrained][Method] java.lang.String org.infinispan.xsite.NoOpBackupSender.toString()
-  |
-  + [Untrained][Method] org.infinispan.interceptors.InvocationStage org.infinispan.xsite.NoOpBackupSender.backupPrepar
-e(org.infinispan.commands.tx.PrepareCommand, org.infinispan.transaction.impl.AbstractCacheTransaction, jakarta.transac
-tion.Transaction)
-  |
-  + [Untrained][Method] org.infinispan.interceptors.InvocationStage org.infinispan.xsite.NoOpBackupSender.backupCommit
-(org.infinispan.commands.tx.CommitCommand, jakarta.transaction.Transaction)
-  |
-  + [Untrained][Method] org.infinispan.interceptors.InvocationStage org.infinispan.xsite.NoOpBackupSender.backupRollba
-ck(org.infinispan.commands.tx.RollbackCommand, jakarta.transaction.Transaction)
-  |
-  + [Untrained][Method] org.infinispan.interceptors.InvocationStage org.infinispan.xsite.NoOpBackupSender.backupWrite(
-org.infinispan.commands.write.WriteCommand, org.infinispan.commands.write.WriteCommand)
-  |
-  + [Untrained][Method] org.infinispan.interceptors.InvocationStage org.infinispan.xsite.NoOpBackupSender.backupClear(
-org.infinispan.commands.write.ClearCommand)
-  |
-  + [Untrained][Method] void org.infinispan.xsite.NoOpBackupSender.<init>()
-  |
-  + [Untrained][Method] void org.infinispan.xsite.NoOpBackupSender.<clinit>()
-  |
-  + [Trained][Method] org.infinispan.xsite.NoOpBackupSender org.infinispan.xsite.NoOpBackupSender.getInstance()
-  ```
