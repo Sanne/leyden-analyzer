@@ -7,6 +7,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.ConstantPoolObject;
 import tooling.leyden.aotcache.Element;
+import tooling.leyden.aotcache.Information;
 import tooling.leyden.aotcache.ReferencingElement;
 import tooling.leyden.commands.DefaultTest;
 import tooling.leyden.commands.LoadFileCommand;
@@ -23,36 +24,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class LogParserTest extends DefaultTest {
 
 	@ParameterizedTest
-	@ValueSource(strings = {"aot.log", "aot.log.0", "aot.log.1"})
-	void addElements(String file) throws Exception {
+	@ValueSource(strings = {"aot.log.0", "aot.log.1"})
+	void trainingLogWarnings(String file) throws Exception {
 		File f = new File(getClass().getResource(file).getPath());
-		getSystemRegistry().execute("load productionLog " + f.getAbsolutePath());
-		final var aotCache = getDefaultCommand().getInformation();
-
-		//Now check individual values
-		for (Element e : aotCache.getAll()) {
-			assertNull(e.getAddress()); //Log doesn't provide this
-			assertNotNull(e.getKey());
-			assertNull(e.getSize()); //Log doesn't provide this
-			assertNotNull(e.getType());
-			assertEquals(1, e.getWhereDoesItComeFrom().size());
-			//Sometimes due to the order of the log,
-			//we will have more than one source here
-			assertTrue(e.getSources().size() > 0);
-		}
+		getSystemRegistry().execute("load trainingLog " + f.getAbsolutePath());
+		assertFalse(Information.getMyself().getWarnings().isEmpty());
 	}
 
 	@Test
-	void addCreationWarnings() throws Exception {
-		File f = new File(getClass().getResource("aot.log.0").getPath());
-		File f2 = new File(getClass().getResource("aot.log.1").getPath());
-		getSystemRegistry().execute("load trainingLog " + f.getAbsolutePath() + " " + f2.getAbsolutePath());
-		final var aotCache = getDefaultCommand().getInformation();
-		assertFalse(aotCache.getWarnings().isEmpty());
-	}
-
-	@Test
-	void addLoadingLog() throws Exception {
+	void productionLogCheckClassLoad() throws Exception {
 		File f = new File(getClass().getResource("aot.log.loading").getPath());
 		getSystemRegistry().execute("load productionLog " + f.getAbsolutePath());
 
@@ -76,11 +56,22 @@ class LogParserTest extends DefaultTest {
 		assertEquals(aotCache.getExternalElements().size(), extClasses);
 		assertEquals(aotCache.getElements(null, null, null, true, false, "Class").count(), classes);
 		assertEquals(aotCache.getElements(null, null, null, true, true, "Class").count(), extClasses + classes);
+
+		//Now check individual values
+		for (Element e : aotCache.getAll()) {
+			assertNull(e.getAddress()); //Log doesn't provide this
+			assertNotNull(e.getKey());
+			assertNull(e.getSize()); //Log doesn't provide this
+			assertNotNull(e.getType());
+			assertEquals(1, e.getWhereDoesItComeFrom().size());
+			//Sometimes due to the order of the log,
+			//we will have more than one source here
+			assertTrue(e.getSources().size() > 0);
+		}
 	}
 
-
 	@Test
-	void acceptAOTResolve() throws Exception {
+	void trainingLogAcceptAOTResolve() throws Exception {
 		final var loadFile = new LoadFileCommand();
 		loadFile.setParent(getDefaultCommand());
 		final var information = loadFile.getParent().getInformation();
@@ -137,7 +128,7 @@ class LogParserTest extends DefaultTest {
 				null, null, true, true, "Symbol").findAny().get();
 		assertEquals(3, parentSymbol.getReferences().size());
 
-		parser.accept("aot.log.2:[trace][aot,resolve              ] archived method CP entry [338]: " +
+		parser.accept("[trace][aot,resolve              ] archived method CP entry [338]: " +
 				"jdk/jfr/internal/dcmd/DCmdStart jdk/jfr/internal/dcmd/Argument.<init>" +
 				":(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZLjava/lang/String;Z)V => jdk/jfr/internal/dcmd/Argument");
 		parentSymbol = (ReferencingElement) information.getElements("jdk/jfr/internal/dcmd/DCmdStart",
