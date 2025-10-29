@@ -452,8 +452,6 @@ Calculating dependency graph...
 
 ### Why is this method not properly trained?
 
-#### Loading the information
-
 We start by loading an aot cache map file to the tool:
 
 ```bash
@@ -542,9 +540,10 @@ I can also check what is happening on the main class for that method:
  ```
 ```
 -----
-|  Class org.infinispan.xsite.NoOpBackupSender on address 0x0000000801711128 with size 624.
+|  Class org.infinispan.xsite.NoOpBackupSender on address 0x00000008017114c0 with size 624.
 |  This information comes from: 
 |    > AOT Map
+|  This class is included in the AOT cache.
 |  This class has 9 Methods, of which 1 have been run and 1 have been trained.
 |  This class doesn't seem to have training data. 
 -----
