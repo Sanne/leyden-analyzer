@@ -184,7 +184,7 @@ class TreeCommand implements Runnable {
 				} else {
 					//Add whatever the symbols redirect us to
 					Set<Element> builtBySymbols = new HashSet<>();
-					classObject.getSymbols().forEach(s -> traverseSymbols(s, builtBySymbols, new HashSet<>()));
+					classObject.getSymbols().forEach(s -> traverseSymbols(s, builtBySymbols));
 					referenced.addAll(filter(builtBySymbols.parallelStream()).toList());
 				}
 
@@ -205,20 +205,14 @@ class TreeCommand implements Runnable {
 		return referenced;
 	}
 
-	private void traverseSymbols(ReferencingElement s, Set<Element> referenced, Set<Element> walkedBy) {
-		for (Element e : s.getReferences()) {
-			if (max > 0 && referenced.size() > max) {
-				break;
-			}
-			if (!walkedBy.contains(e) && !referenced.contains(e)) {
-				walkedBy.add(e);
-				if (e.getType().equalsIgnoreCase("Symbol")) {
-					traverseSymbols((ReferencingElement) e, referenced, walkedBy);
-				} else {
-					referenced.add(e);
-				}
-			}
-		}
+
+	private void traverseSymbols(ReferencingElement symbol, Set<Element> referenced) {
+		symbol.getReferences().stream()
+				.filter(e -> e.getType().equalsIgnoreCase("Symbol"))
+				.map(ReferencingElement.class::cast)
+				.forEach(s -> s.getReferences().stream()
+						.filter(e -> e.getType().equalsIgnoreCase("Class"))
+						.forEach(referenced::add));
 	}
 
 	//Delegate on Information for filtering
