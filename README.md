@@ -1,12 +1,14 @@
-# leyden-analyzer
+# Java AOT Cache Diagnostics Tool
 
-This is an interactive console to help debug what is happening with the AOT Cache.
+This is an interactive console to help debug what is happening within and with the AOT Cache.
 
-This is a very early work-in-progress. This README is going to be deprecated soon, so don't trust it blindly. Just use the `help` command to guide you.
+This is a work-in-progress and there is no stable interface, commands change as we evolve and use it. Use the `help` command to guide you, don't trust this README blindly.
 
-## Packaging and running the application
+## Running the application
 
-To make it work, just `mvn package` and then `java -jar target/quarkus-app/quarkus-run.jar`.
+You can find some already-packaged jar files on the [releases page](https://github.com/Delawen/leyden-analyzer/releases) that you can download and execute with a simple `java -jar leyden-analyzer-*-runner.jar`.
+
+Or if you clone this source code, just `mvn package` and then `java -jar target/quarkus-app/quarkus-run.jar` to run it.
 
 Or if you have [JBang](https://jbang.dev) installed, just run:
 
@@ -18,13 +20,19 @@ NB: The analyzer is not published officially, so JBang might not always detect t
 In that case run JBang with `--fresh` to force it to download the latest version: `jbang --fresh analyzer@delawen/leyden-analyzer`.
 You might need to be patient because it uses [JitPack](https://jitpack.io) to build the tool on demand.
 
-The analyzer uses [picocli](https://picocli.info) and [JLine](https://github.com/jline/jline3) to run.
-
 ## How to use it
 
 There is a `help` command that is very self-explanatory. Please, use it. 
 
-You can jump to the **[example of usage](#examples-of-usage)** if you are in a hurry, but that does not contain all the possiblities this tool offers. Really, use the `help` command. Documentation matters.
+You can jump to the **[Examples](#examples-of-usage)** if you are in a hurry to quickly answer common questions:
+* [Why is this class in my AOT cache?](why-is-this-class-in-my-aot-cache)
+* [Which classes do this class drag into the cache?](which-classes-do-this-class-drag-into-the-cache)
+* [Why is this class NOT in my AOT cache?](why-is-this-class-not-in-my-aot-cache)
+* [Why is this method not properly trained?](why-is-this-method-not-properly-trained)
+
+But they don't contain all the possibilities this tool offers. 
+
+Really, use the `help` command. Documentation matters.
 
 ### Colors
 
@@ -166,7 +174,7 @@ Found 32 elements.
 
 ### Search for warnings
 
-We can also explore the potential errors/warnings/incidents. They may have been loaded from a log file or they can be auto-detected.
+We can also explore the potential errors/warnings/incidents. They may have been loaded from a log file, or they can be auto-detected.
 
 ```bash
 > warning
@@ -334,64 +342,7 @@ Just `exit`.
 
 The following section contains examples on how to use this tool to improve your training runs and get better performance thanks to the AOT Cache in Java.
 
-* [Why is this class in my AOT cache?](why-is-this-class-in-my-aot-cache)
-* [Why is this class NOT in my AOT cache?](why-is-this-class-not-in-my-aot-cache)
-* [Why is this method not properly trained?](why-is-this-method-not-properly-trained)
-
 ### Why is this class in my AOT cache? 
-
-We start by loading an aot cache map file to the tool:
-
-```bash
-load aotCache aot.map
-```
-```
-Adding aot.map to our analysis...
-This is a big file. The size of this file is 395 MB. This may take a while.
-Consider using the `--background` option to load this file.
-File aot.map added in 10108ms.
-```
-And then we load a training log run to generate the dependency graph of classes.
-
-```bash
-load trainingLog /home/delawen/infinispan-server-15.2.5.Final/log.training
-```
-```
-Adding log.training to our analysis...
-File log.training added in 2095ms.
-> File aot.map added in 16466ms.
-```
-
-Now we just simply run the `tree` command to see which classes are used by my root class. Note that this can be a very long graph, you can use `n`, `-epn`, `-max`, and `--level` arguments to filter them out.
-
-```bash
-> tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan
-```
-```
-Calculating dependency graph...
-+ [Untrained][Class] org.infinispan.configuration.cache.Configuration
-  \
-    + [Untrained][Class] org.infinispan.configuration.cache.UnsafeConfiguration
-      \
-        + [Untrained][Class] org.infinispan.commons.configuration.attributes.ConfigurationElement
-          \
-            + [Untrained][Class] [Lorg.infinispan.commons.configuration.attributes.ConfigurationElement;
-              |
-            + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeSet
-              |
-        + [Untrained][Class] org.infinispan.commons.configuration.attributes.Attribute
-          \
-            + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeDefinition
-              \
-                + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeCopier
-                  |
-                + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeInitializer
-                  |
-                + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeMatcher
-[...]
-```
-
-### Which classes do this class drag into the cache?
 
 We start by loading an aot cache map file to the tool:
 
@@ -446,6 +397,59 @@ Calculating dependency graph...
 [...]
 ```
 
+### Which classes do this class drag into the cache?
+
+We start by loading an aot cache map file to the tool:
+
+```bash
+load aotCache aot.map
+```
+```
+Adding aot.map to our analysis...
+This is a big file. The size of this file is 395 MB. This may take a while.
+Consider using the `--background` option to load this file.
+File aot.map added in 10108ms.
+```
+And then we load a training log run to generate the dependency graph of classes.
+
+```bash
+load trainingLog /home/delawen/infinispan-server-15.2.5.Final/log.training
+```
+```
+Adding log.training to our analysis...
+File log.training added in 2095ms.
+> File aot.map added in 16466ms.
+```
+
+Now we just simply run the `tree` command to see which classes are used by my root class. Note that this can be a very long graph, you can use `n`, `-epn`, `-max`, and `--level` arguments to filter them out.
+
+```bash
+> tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan
+```
+```
+Calculating dependency graph...
++ [Untrained][Class] org.infinispan.configuration.cache.Configuration
+  \
+    + [Untrained][Class] org.infinispan.configuration.cache.UnsafeConfiguration
+      \
+        + [Untrained][Class] org.infinispan.commons.configuration.attributes.ConfigurationElement
+          \
+            + [Untrained][Class] [Lorg.infinispan.commons.configuration.attributes.ConfigurationElement;
+              |
+            + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeSet
+              |
+        + [Untrained][Class] org.infinispan.commons.configuration.attributes.Attribute
+          \
+            + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeDefinition
+              \
+                + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeCopier
+                  |
+                + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeInitializer
+                  |
+                + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeMatcher
+[...]
+```
+
 ### Why is this class NOT in my AOT cache?
 
 //TODO
@@ -464,7 +468,7 @@ Consider using the `--background` option to load this file.
 File aot.map added in 10108ms.
 ```
 
-Note that as I haven't load any log file, we only work with information coming from the AOT cache, which is limited.
+Note that as I haven't loaded any log file, we only work with information coming from the AOT cache, which is limited.
 
 #### Asking the tool to find potential improvement areas
 
