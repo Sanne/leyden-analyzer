@@ -203,7 +203,7 @@ public class TrainingLogParser extends LogParser {
 			}
 		} else if (trimmedMessage.startsWith("ArchiveRelocationMode:")) {
 //[info][aot] ArchiveRelocationMode: 1 # always map archive(s) at an alternative address
-			information.getConfiguration().addValue("ArchiveRelocationMode", trimmedMessage.substring(22));
+			information.getConfiguration().addValue("ArchiveRelocationMode", trimmedMessage.substring(22).trim());
 		} else if (trimmedMessage.startsWith("archived module property")) {
 //[info][aot] archived module property jdk.module.main: (null)
 //[info][aot] archived module property jdk.module.addexports: java.naming/com.sun.jndi.ldap=ALL-UNNAMED
