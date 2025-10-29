@@ -16,7 +16,6 @@ import java.io.PrintWriter;
 		= {"", "Press Ctrl-D to exit."},
 		subcommands = {
 				CleanCommand.class,
-				CountCommand.class,
 				DescribeCommand.class,
 				WarningCommand.class,
 				InfoCommand.class,
