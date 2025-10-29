@@ -9,8 +9,6 @@ import tooling.leyden.aotcache.WarningType;
 import tooling.leyden.commands.DefaultTest;
 import tooling.leyden.commands.LoadFileCommand;
 
-import java.io.File;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -21,14 +19,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ProductionLogParserTest extends DefaultTest {
 
 	static ProductionLogParser parser;
-	static AOTMapParser aotParser;
 
 	@BeforeAll
 	static void init() {
 		final var loadFile = new LoadFileCommand();
 		loadFile.setParent(getDefaultCommand());
 		parser = new ProductionLogParser(loadFile);
-		aotParser = new AOTMapParser(loadFile);
 	}
 
 	@Test
@@ -67,10 +63,10 @@ class ProductionLogParserTest extends DefaultTest {
 		assertFalse(Information.getMyself().getAll().isEmpty());
 		assertFalse(Information.getMyself().getExternalElements().isEmpty());
 
-		final int extClasses = Integer.valueOf(Information.getMyself().getStatistics().getValue("[LOG] Classes not loaded from AOT Cache").toString());
-		final int extLambdas = Integer.valueOf(Information.getMyself().getStatistics().getValue("[LOG] Lambda Methods not loaded from AOT Cache").toString());
-		final int classes = Integer.valueOf(Information.getMyself().getStatistics().getValue("[LOG] Classes loaded from AOT Cache").toString());
-		final int lambdas = Integer.valueOf(Information.getMyself().getStatistics().getValue("[LOG] Lambda Methods loaded from AOT Cache").toString());
+		final int extClasses = Integer.parseInt(Information.getMyself().getStatistics().getValue("[LOG] Classes not loaded from AOT Cache").toString());
+		final int extLambdas = Integer.parseInt(Information.getMyself().getStatistics().getValue("[LOG] Lambda Methods not loaded from AOT Cache").toString());
+		final int classes = Integer.parseInt(Information.getMyself().getStatistics().getValue("[LOG] Classes loaded from AOT Cache").toString());
+		final int lambdas = Integer.parseInt(Information.getMyself().getStatistics().getValue("[LOG] Lambda Methods loaded from AOT Cache").toString());
 
 		assertEquals(Information.getMyself().getExternalElements().size(), extClasses);
 		assertEquals(Information.getMyself().getElements(null, null, null, true, false, "Class").count(), classes);
@@ -90,7 +86,7 @@ class ProductionLogParserTest extends DefaultTest {
 			assertEquals(1, e.getWhereDoesItComeFrom().size());
 			//Sometimes due to the order of the log,
 			//we will have more than one source here
-			assertTrue(e.getSources().size() > 0);
+			assertFalse(e.getSources().isEmpty());
 		}
 
 		//Just check we didn't create something unexpectedly
@@ -105,7 +101,7 @@ class ProductionLogParserTest extends DefaultTest {
 
 		assertEquals(2, Information.getMyself().getWarnings().size());
 
-		Information.getMyself().getWarnings().stream().noneMatch(w -> w.getType() == WarningType.CacheCreation);
+		assertTrue(Information.getMyself().getWarnings().stream().noneMatch(w -> w.getType() == WarningType.CacheCreation));
 	}
 
 	@Test

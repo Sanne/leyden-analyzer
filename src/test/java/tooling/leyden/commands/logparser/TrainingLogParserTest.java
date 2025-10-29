@@ -1,83 +1,85 @@
 package tooling.leyden.commands.logparser;
 
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.ConstantPoolObject;
-import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.Information;
 import tooling.leyden.aotcache.ReferencingElement;
+import tooling.leyden.aotcache.WarningType;
 import tooling.leyden.commands.DefaultTest;
 import tooling.leyden.commands.LoadFileCommand;
 
-import java.io.File;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
-class LogParserTest extends DefaultTest {
+class TrainingLogParserTest extends DefaultTest {
 
-	@ParameterizedTest
-	@ValueSource(strings = {"aot.log.0", "aot.log.1"})
-	void trainingLogWarnings(String file) throws Exception {
-		File f = new File(getClass().getResource(file).getPath());
-		getSystemRegistry().execute("load trainingLog " + f.getAbsolutePath());
-		assertFalse(Information.getMyself().getWarnings().isEmpty());
-	}
+	static TrainingLogParser parser;
+	static AOTMapParser aotParser;
 
-	@Test
-	void productionLogCheckClassLoad() throws Exception {
-		File f = new File(getClass().getResource("aot.log.loading").getPath());
-		getSystemRegistry().execute("load productionLog " + f.getAbsolutePath());
-
-		final var aotCache = getDefaultCommand().getInformation();
-
-		assertFalse(aotCache.getStatistics().getKeys().isEmpty());
-		assertTrue(aotCache.getWarnings().isEmpty());
-		assertFalse(aotCache.getAll().isEmpty());
-		assertFalse(aotCache.getExternalElements().isEmpty());
-
-		final int extClasses = Integer.valueOf(aotCache.getStatistics().getValue("[LOG] Classes not loaded from AOT Cache").toString());
-		final int extLambdas = Integer.valueOf(aotCache.getStatistics().getValue("[LOG] Lambda Methods not loaded from AOT Cache").toString());
-		final int classes = Integer.valueOf(aotCache.getStatistics().getValue("[LOG] Classes loaded from AOT Cache").toString());
-		final int lambdas = Integer.valueOf(aotCache.getStatistics().getValue("[LOG] Lambda Methods loaded from AOT Cache").toString());
-
-		assertEquals(1827, extClasses);
-		assertEquals(1556, extLambdas);
-		assertEquals(8799, classes);
-		assertEquals(197, lambdas);
-
-		assertEquals(aotCache.getExternalElements().size(), extClasses);
-		assertEquals(aotCache.getElements(null, null, null, true, false, "Class").count(), classes);
-		assertEquals(aotCache.getElements(null, null, null, true, true, "Class").count(), extClasses + classes);
-
-		//Now check individual values
-		for (Element e : aotCache.getAll()) {
-			assertNull(e.getAddress()); //Log doesn't provide this
-			assertNotNull(e.getKey());
-			assertNull(e.getSize()); //Log doesn't provide this
-			assertNotNull(e.getType());
-			assertEquals(1, e.getWhereDoesItComeFrom().size());
-			//Sometimes due to the order of the log,
-			//we will have more than one source here
-			assertTrue(e.getSources().size() > 0);
-		}
-	}
-
-	@Test
-	void trainingLogAcceptAOTResolve() throws Exception {
+	@BeforeAll
+	static void init() {
 		final var loadFile = new LoadFileCommand();
 		loadFile.setParent(getDefaultCommand());
-		final var information = loadFile.getParent().getInformation();
-		final var parser = new TrainingLogParser(loadFile);
-		final var aotParser = new AOTMapParser(loadFile);
+		parser = new TrainingLogParser(loadFile);
+		aotParser = new AOTMapParser(loadFile);
+	}
 
+	@Test
+	void warnings() {
+		parser.accept("[warning][aot] Skipping org/apache/logging/log4j/core/async/AsyncLoggerContext: Failed " +
+				"verification");
+		parser.accept("[warning][aot] Skipping org/apache/logging/slf4j/Log4jLoggerFactory$$Lambda+0x800000258: " +
+						"nest_host class org/apache/logging/slf4j/Log4jLoggerFactory is excluded");
+		parser.accept("[warning][aot] Skipping jdk/proxy1/$Proxy29: Unsupported location");
+		parser.accept("[warning][aot] Skipping org/slf4j/ILoggerFactory: Old class has been linked");
+		parser.accept("[warning][aot] Skipping jdk/internal/event/SecurityProviderServiceEvent: JFR event class");
+		parser.accept("[warning][aot] Skipping com/thoughtworks/xstream/security/ForbiddenClassException: Unlinked " +
+				"class not supported by AOTConfiguration");
+		parser.accept("[warning][aot] Skipping java/lang/invoke/BoundMethodHandle$Species_LI because it is " +
+				"dynamically generated");
+		parser.accept("[info][aot       ] JVM_StartThread() ignored: java.lang.ref.Reference$ReferenceHandler");
+		parser.accept("[warning][aot       ] Preload Warning: Verification failed for org.infinispan.remoting" +
+				".transport.jgroups.JGroupsRaftManager");
+		parser.accept("[warning][aot       ] Preload Warning: Verification failed for org.apache.logging.log4j.core" +
+				".async.AsyncLoggerContext");
+
+		assertEquals(10, Information.getMyself().getWarnings().size());
+
+		assertTrue(Information.getMyself().getWarnings().stream().noneMatch(w -> w.getType() == WarningType.CacheLoad));
+	}
+
+	@Test
+	void acceptConfiguration() {
+		parser.accept("[info][aot] Core region alignment: 4096");
+		parser.accept("[info][aot] The AOT configuration file was created with UseCompressedOops = 1, " +
+				"UseCompressedClassPointers = 1, UseCompactObjectHeaders = 0");
+		parser.accept("[info][aot] ArchiveRelocationMode: 1 # always map archive(s) at an alternative address");
+		parser.accept("[info][aot] archived module property jdk.module.main: (null)");
+		parser.accept("[info][aot] archived module property jdk.module.addexports: java.naming/com.sun.jndi.ldap=ALL-UNNAMED");
+		parser.accept("[info][aot] archived module property jdk.module.enable.native.access: ALL-UNNAMED");
+		parser.accept("[info][aot] initial optimized module handling: enabled");
+		parser.accept("[info][aot] initial full module graph: disabled");
+
+		assertEquals("4096", Information.getMyself().getConfiguration().getValue("Core region alignment"));
+		assertEquals("1", Information.getMyself().getConfiguration().getValue("UseCompressedOops"));
+		assertEquals("1", Information.getMyself().getConfiguration().getValue("UseCompressedClassPointers"));
+		assertEquals("0", Information.getMyself().getConfiguration().getValue("UseCompactObjectHeaders"));
+		assertEquals("1 # always map archive(s) at an alternative address",
+				Information.getMyself().getConfiguration().getValue("ArchiveRelocationMode"));
+		assertEquals("(null)", Information.getMyself().getConfiguration().getValue("archived module property jdk.module.main"));
+		assertEquals("java.naming/com.sun.jndi.ldap=ALL-UNNAMED", Information.getMyself().getConfiguration().getValue("archived module property jdk.module.addexports"));
+		assertEquals("ALL-UNNAMED", Information.getMyself().getConfiguration().getValue("archived module property jdk.module.enable.native.access"));
+		assertEquals("enabled", Information.getMyself().getConfiguration().getValue("initial optimized module handling"));
+		assertEquals("disabled", Information.getMyself().getConfiguration().getValue("initial full module graph"));
+	}
+
+	@Test
+	void acceptAOTResolve() {
 		parser.accept("[info ][aot,resolve              ] Archiving CP entries for org/infinispan/rest/framework/impl/InvocationImpl");
 		parser.accept("[trace][aot,resolve              ] archived klass  CP entry [  2]: org/infinispan/rest/framework/impl/InvocationImpl unreg => java/lang/Object boot");
 		parser.accept("[trace][aot,resolve              ] archived klass  CP entry [  8]: org/infinispan/rest/framework/impl/InvocationImpl unreg => org/infinispan/rest/framework/impl/InvocationImpl unreg");
@@ -107,31 +109,31 @@ class LogParserTest extends DefaultTest {
 		parser.accept("[trace][aot,resolve              ] archived klass  CP entry [ 23]: " +
 				"io/reactivex/rxjava3/internal/subscribers/InnerQueuedSubscriber unreg => java/util/concurrent/atomic/AtomicReference boot");
 
-		var parentSymbol = (ReferencingElement) information.getElements("org/infinispan/rest/framework/impl/InvocationImpl",
+		var parentSymbol = (ReferencingElement) Information.getMyself().getElements("org/infinispan/rest/framework/impl/InvocationImpl",
 				null, null, true, true, "Symbol").findAny().get();
 		assertEquals(16, parentSymbol.getReferences().size());
 		assertEquals(1,
-				((ReferencingElement) information.getElements("io/reactivex/rxjava3/internal/subscribers/InnerQueuedSubscriber",
+				((ReferencingElement) Information.getMyself().getElements("io/reactivex/rxjava3/internal/subscribers/InnerQueuedSubscriber",
 						null, null, true, true, "Symbol").findAny().get())
 						.getReferences().size());
 
 		//Now try adding methods
 		parser.accept("[trace][aot,resolve              ] archived method CP entry [194]: " +
 				"jdk/jfr/internal/jfc/model/XmlSelection jdk/jfr/internal/jfc/model/XmlSelection.getDefault:()Ljava/lang/String; => jdk/jfr/internal/jfc/model/XmlSelection");
-		parentSymbol = (ReferencingElement) information.getElements("jdk/jfr/internal/jfc/model/XmlSelection",
+		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/jfr/internal/jfc/model/XmlSelection",
 				null, null, true, true, "Symbol").findAny().get();
 		assertEquals(2, parentSymbol.getReferences().size());
 
 		parser.accept("[trace][aot,resolve              ] archived method CP entry [  8]: " +
 				"jdk/jfr/internal/dcmd/DCmdStart$$Lambda+0x80000010e java/lang/Object.<init>:()V => java/lang/Object");
-		parentSymbol = (ReferencingElement) information.getElements("jdk/jfr/internal/dcmd/DCmdStart$$Lambda+0x80000010e",
+		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/jfr/internal/dcmd/DCmdStart$$Lambda+0x80000010e",
 				null, null, true, true, "Symbol").findAny().get();
 		assertEquals(3, parentSymbol.getReferences().size());
 
 		parser.accept("[trace][aot,resolve              ] archived method CP entry [338]: " +
 				"jdk/jfr/internal/dcmd/DCmdStart jdk/jfr/internal/dcmd/Argument.<init>" +
 				":(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZLjava/lang/String;Z)V => jdk/jfr/internal/dcmd/Argument");
-		parentSymbol = (ReferencingElement) information.getElements("jdk/jfr/internal/dcmd/DCmdStart",
+		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/jfr/internal/dcmd/DCmdStart",
 				null, null, true, true, "Symbol").findAny().get();
 		assertEquals(3, parentSymbol.getReferences().size());
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("jdk/jfr/internal/dcmd/Argument")));
@@ -142,7 +144,7 @@ class LogParserTest extends DefaultTest {
 		//interface method
 		parser.accept("[trace][aot,resolve              ] archived interface method CP entry [ 18]: " +
 				"jdk/internal/module/ModuleBootstrap$$Lambda+0x80000000c java/util/Collection.stream:()Ljava/util/stream/Stream; => java/util/Collection");
-		parentSymbol = (ReferencingElement) information.getElements("jdk/internal/module/ModuleBootstrap$$Lambda+0x80000000c",
+		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/internal/module/ModuleBootstrap$$Lambda+0x80000000c",
 				null, null, true, true, "Symbol").findAny().get();
 		assertEquals(3, parentSymbol.getReferences().size());
 
@@ -153,7 +155,7 @@ class LogParserTest extends DefaultTest {
 		aotParser.accept("0x00000008007cd538: @@ Symbol             14 ()I");
 		parser.accept("[trace][aot,resolve              ] archived interface method CP entry [ 13]: " +
 				"jdk/jfr/internal/jfc/model/XmlNot java/util/List.size:()I => java/util/List");
-		parentSymbol = (ReferencingElement) information.getElements("jdk/jfr/internal/jfc/model/XmlNot",
+		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/jfr/internal/jfc/model/XmlNot",
 				null, null, true, true, "Symbol").findAny().get();
 		assertEquals(3, parentSymbol.getReferences().size());
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("java/util/List")));
@@ -164,7 +166,7 @@ class LogParserTest extends DefaultTest {
 		parser.accept("[trace][aot,resolve              ] archived indy   CP entry [294]: " +
 				"jdk/jfr/internal/dcmd/DCmdDump (0) => java/lang/invoke/LambdaMetafactory.metafactory:" +
 				"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;");
-		parentSymbol = (ReferencingElement) information.getElements("jdk/jfr/internal/dcmd/DCmdDump",
+		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/jfr/internal/dcmd/DCmdDump",
 				null, null, true, true, "Symbol").findAny().get();
 		assertEquals(3, parentSymbol.getReferences().size());
 
@@ -172,14 +174,14 @@ class LogParserTest extends DefaultTest {
 		parser.accept("[trace][aot,resolve              ] archived indy   CP entry [263]: " +
 				"jdk/jfr/internal/dcmd/DCmdCheck (1) => java/lang/invoke/LambdaMetafactory.metafactory:" +
 				signature);
-		parentSymbol = (ReferencingElement) information.getElements("jdk/jfr/internal/dcmd/DCmdCheck",
+		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/jfr/internal/dcmd/DCmdCheck",
 				null, null, true, true, "Symbol").findAny().get();
 		assertEquals(3, parentSymbol.getReferences().size());
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("java/lang/invoke/LambdaMetafactory")));
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("metafactory")));
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals(signature)));
 
-		assertTrue(information.getAll().parallelStream().allMatch(e -> e.getType().equals("Symbol")));
+		assertTrue(Information.getMyself().getAll().parallelStream().allMatch(e -> e.getType().equals("Symbol")));
 
 		//If a class exists already, the Symbol must be linked there:
 		aotParser.accept("0x0000000800a8efe8: @@ Class             536 sun.util.locale.BaseLocale");
@@ -190,7 +192,7 @@ class LogParserTest extends DefaultTest {
 		parser.accept("[trace][aot,resolve              ] archived klass  CP entry [  8]: sun/util/locale/BaseLocale boot => sun/util/locale/BaseLocale boot");
 		parser.accept("[trace][aot,resolve              ] archived klass  CP entry [ 28]: sun/util/locale/BaseLocale boot => sun/util/locale/LocaleUtils boot (not supertype)");
 
-		var classObj = (ClassObject) information.getElements("sun.util.locale.BaseLocale",
+		var classObj = (ClassObject) Information.getMyself().getElements("sun.util.locale.BaseLocale",
 				null, null, true, true, "Class").findAny().get();
 		assertEquals(1, classObj.getSymbols().size());
 		parentSymbol = classObj.getSymbols().getFirst();
@@ -200,12 +202,12 @@ class LogParserTest extends DefaultTest {
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("sun/util/locale/LocaleUtils")));
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getType().equals("Class")));
 
-		var cp = (ConstantPoolObject) information.getElements("sun.util.locale.BaseLocale",
+		var cp = (ConstantPoolObject) Information.getMyself().getElements("sun.util.locale.BaseLocale",
 				null, null, true, true, "ConstantPool").findAny().get();
 		assertNotNull(cp.getConstantPoolCacheAddress());
 		assertEquals(cp.getPoolHolder(), classObj);
 
-		classObj = (ClassObject) information.getElements("sun.util.locale.LocaleUtils",
+		classObj = (ClassObject) Information.getMyself().getElements("sun.util.locale.LocaleUtils",
 				null, null, true, true, "Class").findAny().get();
 		assertEquals(1, classObj.getSymbols().size());
 		parentSymbol = classObj.getSymbols().getFirst();

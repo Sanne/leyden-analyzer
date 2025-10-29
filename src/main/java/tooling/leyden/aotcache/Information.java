@@ -31,7 +31,6 @@ public class Information {
 	//Store information extracted and inferred
 	private Configuration configuration = new Configuration();
 	private Configuration statistics = new Configuration();
-	private Configuration allocation = new Configuration();
 
 	//Singletonish
 	private static Information myself;
@@ -84,7 +83,6 @@ public class Information {
 		autoWarnings.clear();
 		classes.clear();
 		statistics.clear();
-		allocation.clear();
 		configuration.clear();
 	}
 
@@ -211,10 +209,6 @@ public class Information {
 
 	public Configuration getStatistics() {
 		return statistics;
-	}
-
-	public Configuration getAllocation() {
-		return allocation;
 	}
 
 	public List<String> getAllTypes() {
