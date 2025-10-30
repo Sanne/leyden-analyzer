@@ -46,7 +46,7 @@ public class AOTMapParser implements Consumer<String> {
 			final var identifier =
 					content.substring(content.indexOf(" " + contentParts[3]) + 1 + contentParts[3].length()).trim();
 
-			Element element = null;
+			Element element;
 
 			if (type.equalsIgnoreCase("Class")) {
 				// Metadata Klass
@@ -141,12 +141,11 @@ public class AOTMapParser implements Consumer<String> {
 				loadFile.getParent().getOut().println(content);
 				element = new BasicObject(address);
 			}
-			if (element != null) {
-				element.setAddress(address);
-				element.setType(type);
-				element.setSize(size);
-				this.information.addAOTCacheElement(element, thisSource);
-			}
+			element.setAddress(address);
+			element.setType(type);
+			element.setSize(size);
+			this.information.addAOTCacheElement(element, thisSource);
+
 		} catch (Exception e) {
 			loadFile.getParent().getOut().println("ERROR: " + e.getMessage());
 			loadFile.getParent().getOut().println("ERROR: " + content);
@@ -378,7 +377,7 @@ public class AOTMapParser implements Consumer<String> {
 		}
 		ClassObject classObject = new ClassObject(identifier);
 		//If there are Symbols with this exact class name (dotted or slashed), link them:
-		var symbol = this.information.getElements(identifier.replaceAll(".", "/"), null, null, true, true, "Symbol").findAny();
+		var symbol = this.information.getElements(identifier.replaceAll("\\.", "/"), null, null, true, true, "Symbol").findAny();
 		if (symbol.isPresent()) {
 			classObject.addSymbol((ReferencingElement) symbol.get());
 		}
