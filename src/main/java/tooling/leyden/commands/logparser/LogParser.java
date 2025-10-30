@@ -51,6 +51,6 @@ public abstract class LogParser implements Consumer<String> {
 		return Arrays.asList(tags).containsAll(Arrays.asList(wantedTags));
 	}
 
-	record Line(String content, String[] tags, String level, String message, String trimmedMessage) {
+	protected record Line(String content, String[] tags, String level, String message, String trimmedMessage) {
 	}
 }

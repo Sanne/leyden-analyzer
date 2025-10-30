@@ -6,10 +6,9 @@ import org.jline.utils.AttributedStyle;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import tooling.leyden.aotcache.Element;
+import tooling.leyden.aotcache.Information;
 import tooling.leyden.aotcache.ReferencingElement;
-import tooling.leyden.commands.autocomplete.Packages;
 
-import java.sql.Ref;
 import java.util.Comparator;
 import java.util.List;
 
@@ -33,8 +32,22 @@ class DescribeCommand implements Runnable {
 	private CommonParameters parameters;
 
 	public void run() {
-		var elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-				parameters.excludePackageName, parameters.showArrays, parameters.useNotCached, parameters.types).toList();
+
+		List<Element> elements;
+
+		switch (parameters.use) {
+			case both -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
+					parameters.excludePackageName, parameters.showArrays, true, parameters.types).toList();
+			case notCached ->
+					elements = Information.getMyself().filterByParams(
+							parameters.packageName, parameters.excludePackageName, parameters.showArrays, parameters.types,
+							parent.getInformation().getExternalElements().entrySet().parallelStream()
+									.filter(keyElementEntry -> parameters.getName().isBlank()
+											|| keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
+									.map(keyElementEntry -> keyElementEntry.getValue())).toList();
+			default -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
+					parameters.excludePackageName, parameters.showArrays, false, parameters.types).toList();
+		}
 
 		AttributedStringBuilder sb = new AttributedStringBuilder();
 		if (!elements.isEmpty()) {
@@ -44,7 +57,7 @@ class DescribeCommand implements Runnable {
 				sb.append(AttributedString.NEWLINE);
 				sb.append(e.getDescription(leftPadding));
 				sb.append(AttributedString.NEWLINE);
-				if(verbose) {
+				if (verbose) {
 					if (e instanceof ReferencingElement re) {
 						if (!re.getReferences().isEmpty()) {
 							sb.append(leftPadding + "Elements referenced from this element: ");

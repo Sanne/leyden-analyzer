@@ -2,11 +2,10 @@ package tooling.leyden.commands;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.Element;
+import tooling.leyden.aotcache.Information;
 import tooling.leyden.aotcache.MethodObject;
 
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -45,10 +44,22 @@ class ListCommand implements Runnable {
 	}
 
 	protected Stream<Element> findElements(AtomicInteger counter) {
-		Stream<Element> elements =
-				parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-						parameters.excludePackageName, parameters.showArrays, parameters.useNotCached,
-						parameters.types);
+		Stream<Element> elements;
+
+		switch (parameters.use) {
+			case both -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
+					parameters.excludePackageName, parameters.showArrays, true, parameters.types);
+			case notCached ->
+					elements = Information.getMyself().filterByParams(
+							parameters.packageName, parameters.excludePackageName, parameters.showArrays, parameters.types,
+							parent.getInformation().getExternalElements().entrySet().parallelStream()
+									.filter(keyElementEntry -> parameters.getName().isBlank()
+											|| keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
+									.map(keyElementEntry -> keyElementEntry.getValue()));
+			default -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
+					parameters.excludePackageName, parameters.showArrays, false, parameters.types);
+		}
+
 
 		if (trained) {
 			elements = elements.filter(e -> e.isTraineable() && e.isTrained());

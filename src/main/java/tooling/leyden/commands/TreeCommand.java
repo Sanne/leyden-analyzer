@@ -13,9 +13,7 @@ import tooling.leyden.aotcache.ReferencingElement;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -70,9 +68,22 @@ class TreeCommand implements Runnable {
 			parameters.types = new String[]{"Class", "Object"};
 		}
 
-		List<Element> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-				parameters.excludePackageName,
-				parameters.showArrays, parameters.useNotCached, "Class").toList();
+		List<Element> elements;
+
+		switch (parameters.use) {
+			case both -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
+					parameters.excludePackageName, parameters.showArrays, true, "Class").toList();
+			case notCached ->
+					elements = Information.getMyself().filterByParams(
+							parameters.packageName, parameters.excludePackageName, parameters.showArrays,
+							new String[] {"Class"},
+							parent.getInformation().getExternalElements().entrySet().parallelStream()
+									.filter(keyElementEntry -> parameters.getName().isBlank()
+											|| keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
+									.map(keyElementEntry -> keyElementEntry.getValue())).toList();
+			default -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
+					parameters.excludePackageName, parameters.showArrays, false, "Class").toList();
+		}
 
 		if (!elements.isEmpty()) {
 			elements.forEach(e -> {

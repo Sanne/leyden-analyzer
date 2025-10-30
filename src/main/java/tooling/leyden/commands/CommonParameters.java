@@ -12,6 +12,10 @@ import tooling.leyden.commands.autocomplete.Types;
 		commandListHeading   = "%nCommands:%n%n")
 public class CommonParameters {
 
+	public enum ElementsToUse {
+		cached, notCached, both
+	}
+
 	@CommandLine.Option(names = {"-pn", "--packageName"},
 			description = {"Restrict the command to elements inside this package. ",
 					"Note that some elements don't belong to any particular package"},
@@ -44,11 +48,12 @@ public class CommonParameters {
 			arity = "0..1")
 	protected Boolean showArrays = true;
 
-	@CommandLine.Option(names = {"--useNotCached"},
-			description = "Use elements that are used in your app but were not in the AOT Cache. False by default.",
-			defaultValue = "false",
+	@CommandLine.Option(names = {"--use", "-u"},
+			description = "What type of elements to use on this command: cached during AOT, not cached, or both. " +
+					"By default, only included in the AOT cache.",
+			defaultValue = "cached",
 			arity = "0..1")
-	protected Boolean useNotCached = false;
+	protected ElementsToUse use = ElementsToUse.cached;
 
 	@CommandLine.Option(
 			names = {"-t", "--type"},
@@ -60,11 +65,15 @@ public class CommonParameters {
 	protected String[] types;
 
 	public String getName() {
-		if(name != null
-			&& ((name.startsWith("'") && name.endsWith("'"))
-				|| (name.startsWith("\"") && name.endsWith("\"")))) {
-			name = name.substring(1, name.length() - 1);
+		return cleanQuotes(this.name);
+	}
+
+	private String cleanQuotes(String string) {
+		if(string != null
+				&& ((string.startsWith("'") && string.endsWith("'"))
+				|| (string.startsWith("\"") && string.endsWith("\"")))) {
+			string = string.substring(1, string.length() - 1);
 		}
-		return name;
+		return string;
 	}
 }
