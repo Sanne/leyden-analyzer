@@ -25,10 +25,10 @@ You might need to be patient because it uses [JitPack](https://jitpack.io) to bu
 There is a `help` command that is very self-explanatory. Please, use it. 
 
 You can jump to the **[Examples](#examples-of-usage)** if you are in a hurry to quickly answer common questions:
-* [Why is this class in my AOT cache?](why-is-this-class-in-my-aot-cache)
-* [Which classes do this class drag into the cache?](which-classes-do-this-class-drag-into-the-cache)
-* [Why is this class NOT in my AOT cache?](why-is-this-class-not-in-my-aot-cache)
-* [Why is this method not properly trained?](why-is-this-method-not-properly-trained)
+* [Why is this class in my AOT cache?](#why-is-this-class-in-my-aot-cache)
+* [Which classes do this class drag into the cache?](#which-classes-do-this-class-drag-into-the-cache)
+* [Why is this class NOT in my AOT cache?](#why-is-this-class-not-in-my-aot-cache)
+* [Why is this method not properly trained?](#why-is-this-method-not-properly-trained)
 
 But they don't contain all the possibilities this tool offers. 
 
@@ -85,19 +85,19 @@ After loading the AOT Map File, we can explore the elements that have been saved
 We can load logs for the training or the production run.
 
 ```bash
-> load productionLog log.production
+> load productionLog production.log
 ```
 ```
-Adding log.production to our analysis...
-File log.production added in 280ms.
+Adding production.log to our analysis...
+File production.log added in 280ms.
 ```
 
 ```bash
-> load trainingLog /home/delawen/infinispan-server-15.2.5.Final/log.training
+> load trainingLog training.log
 ```
 ```
-Adding log.training to our analysis...
-File log.training added in 2925ms.
+Adding training.log to our analysis...
+File training.log added in 2925ms.
 ```
 
 After loading some information, we can start the analysis.
@@ -358,11 +358,11 @@ File aot.map added in 10108ms.
 And then we load a training log run to generate the dependency graph of classes.
 
 ```bash
-load trainingLog /home/delawen/infinispan-server-15.2.5.Final/log.training
+load trainingLog training.log
 ```
 ```
-Adding log.training to our analysis...
-File log.training added in 2095ms.
+Adding training.log to our analysis...
+File training.log added in 2095ms.
 > File aot.map added in 16466ms.
 ```
 
@@ -413,12 +413,11 @@ File aot.map added in 10108ms.
 And then we load a training log run to generate the dependency graph of classes.
 
 ```bash
-load trainingLog /home/delawen/infinispan-server-15.2.5.Final/log.training
+load trainingLog training.log
 ```
 ```
-Adding log.training to our analysis...
-File log.training added in 2095ms.
-> File aot.map added in 16466ms.
+Adding training.log to our analysis...
+File training.log added in 2095ms.
 ```
 
 Now we just simply run the `tree` command to see which classes are used by my root class. Note that this can be a very long graph, you can use `n`, `-epn`, `-max`, and `--level` arguments to filter them out.
@@ -452,7 +451,78 @@ Calculating dependency graph...
 
 ### Why is this class NOT in my AOT cache?
 
-//TODO
+We load a production log run to add information on which classes were used during production and where they were loaded from. 
+
+```bash
+load productionLog production.log
+```
+```
+Adding production.log to our analysis...
+File production.log added in 558ms.
+```
+We can now list and `describe` classes that are outside the AOT cache using the `--use` parameter.
+
+```bash
+ls -t=Class --use=notCached
+```
+```
+[...]
+[Untrained][Class] org.infinispan.notifications.impl.AbstractListenerImpl$ListenerInvocationImpl$$Lambda/0x00000000500be230
+[Untrained][Class] org.infinispan.remoting.transport.jgroups.JGroupsMetricsMetadata$$Lambda/0x00000000500cf6a0
+[Untrained][Class] org.infinispan.objectfilter.impl.syntax.parser.ProtobufPropertyHelper$$Lambda/0x000000005012d8f0
+[Untrained][Class] org.infinispan.persistence.file.SingleFileStore$$Lambda/0x00000000500fd000
+[Untrained][Class] org.infinispan.remoting.transport.jgroups.JGroupsMetricsMetadata$$Lambda/0x00000000500cf8e8
+[Untrained][Class] org.infinispan.remoting.transport.jgroups.JGroupsMetricsMetadata$$Lambda/0x00000000500cfb30
+[Untrained][Class] org.infinispan.remoting.transport.jgroups.JGroupsMetricsMetadata$$Lambda/0x00000000500cfd78
+[Untrained][Class] org.infinispan.remoting.transport.jgroups.JGroupsMetricsMetadata$$Lambda/0x00000000500d0000
+[Untrained][Class] org.infinispan.remoting.transport.jgroups.JGroupsMetricsMetadata$$Lambda/0x00000000500d0248
+[Untrained][Class] org.infinispan.remoting.transport.jgroups.JGroupsMetricsMetadata$$Lambda/0x00000000500d0490
+[Untrained][Class] org.infinispan.remoting.transport.jgroups.JGroupsMetricsMetadata$$Lambda/0x00000000500d06d8
+[Untrained][Class] org.infinispan.remoting.transport.jgroups.JGroupsMetricsMetadata$$Lambda/0x00000000500d0920
+[Untrained][Class] org.infinispan.remoting.transport.jgroups.JGroupsMetricsMetadata$$Lambda/0x00000000500d0b68
+Found 1819 elements.
+```
+
+```bash
+describe -i=org.infinispan.remoting.transport.jgroups.JGroupsRaftManager --use=both -v
+```
+```
+-----
+|  Class org.infinispan.remoting.transport.jgroups.JGroupsRaftManager.
+|  This information comes from: 
+|    > Production log
+|  This class is NOT included in the AOT cache.
+|  This class doesn't seem to have training data. If you think this class and its methods should be part of the training, make sure your training run use them.
+|  There are no elements referenced from this element.
+|  There are no other elements of the cache that refer to this element.
+-----
+```
+
+There are multiple reasons why this happened and we can't cover all. But we can load the training run log and see if we can find any warning about it:
+
+```bash
+load trainingLog training.log
+```
+```
+Adding training.log to our analysis...
+File training.log added in 1278ms.
+```
+
+```bash
+warning
+```
+```
+000 [Unknown] Preload Warning: Verification failed for org.infinispan.remoting.transport.jgroups.JGroupsRaftManager
+001 [Unknown] Preload Warning: Verification failed for org.apache.logging.log4j.core.async.AsyncLoggerContext
+002 [CacheCreation] Element 'org.infinispan.remoting.transport.jgroups.JGroupsRaftManager' of type 'Class' couldn't be
+ stored into the AOTcache because: Failed verification
+003 [CacheCreation] Element 'org.apache.logging.log4j.core.async.AsyncLoggerContext' of type 'Class' couldn't be store
+d into the AOTcache because: Failed verification
+Found 4 warnings.
+> 
+```
+
+We find there two warnings associated to this element: `000` and `002`. Now we have something to investigate.
 
 ### Why is this method not properly trained?
 
