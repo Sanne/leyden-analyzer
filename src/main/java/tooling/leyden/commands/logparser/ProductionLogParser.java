@@ -2,6 +2,7 @@ package tooling.leyden.commands.logparser;
 
 import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.Element;
+import tooling.leyden.aotcache.Warning;
 import tooling.leyden.aotcache.WarningType;
 import tooling.leyden.commands.LoadFileCommand;
 
@@ -29,7 +30,7 @@ public class ProductionLogParser extends LogParser {
 			information.addWarning(null, trimmedMessage, WarningType.CacheLoad);
 		} else {
 			//Very generic, but at least catch things
-			information.addWarning(null, trimmedMessage, WarningType.Unknown);
+			information.getWarnings().add(new Warning(trimmedMessage));
 		}
 	}
 
@@ -40,7 +41,7 @@ public class ProductionLogParser extends LogParser {
 			information.addWarning(null, trimmedMessage, WarningType.CacheLoad);
 		} else {
 			//Very generic, but at least catch things
-			information.addWarning(null, trimmedMessage, WarningType.Unknown);
+			information.getWarnings().add(new Warning(trimmedMessage));
 		}
 	}
 

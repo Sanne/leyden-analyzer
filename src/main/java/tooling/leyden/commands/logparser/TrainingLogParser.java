@@ -6,6 +6,7 @@ import tooling.leyden.aotcache.ConstantPoolObject;
 import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.MethodObject;
 import tooling.leyden.aotcache.ReferencingElement;
+import tooling.leyden.aotcache.Warning;
 import tooling.leyden.aotcache.WarningType;
 import tooling.leyden.commands.LoadFileCommand;
 
@@ -152,41 +153,29 @@ public class TrainingLogParser extends LogParser {
 	private void processSkipping(String message) {
 		String[] msg = message.trim().split("\\s+");
 		String className = msg[1].replace("/", ".").replace(":", "").trim();
-		msg[0] = "";
-		msg[1] = "";
-		String reason = String.join(" ", msg).trim();
-		Element element;
-		if (className.contains("$$")) {
-
-			var elements = information.getElements(className.replace("$$", "."), null, null, true, true, "Method").findAny();
-			if (elements.isPresent()) {
-				element = elements.get();
-			} else {
-				elements = information.getElements(className.substring(0, className.indexOf("$$")), null, null, true,
-						true, "Class").findAny();
-				if (elements.isPresent()) {
-					element = elements.get();
-				} else {
-					element = new MethodObject();
-					((MethodObject) element).setName(className);
-				}
-			}
-		} else {
-			element = information.getElements(className, null, null, true, true, "Class")
+		Element element = information.getElements(className, null, null, true, true, "Class")
 					.findAny().orElseGet(() -> new ClassObject(className));
-		}
-		information.addWarning(element, reason, WarningType.CacheCreation);
+		information.addWarning(element, message, WarningType.CacheCreation);
 	}
 
 
 	private void processWarning(String trimmedMessage) {
-		//Very generic, but at least catch things
-		information.addWarning(null, trimmedMessage, WarningType.Unknown);
+		if (trimmedMessage.startsWith("Preload Warning: Verification failed for ")) {
+			var className = trimmedMessage.substring(trimmedMessage.indexOf("for ") + 4);
+			var classObj = this.information.getElements(className,
+					null, null, true, true, "Class").findAny();
+			this.information.addWarning(classObj.orElse(new ClassObject(className)), trimmedMessage,
+					WarningType.CacheCreation);
+		}
+		else {
+			//Very generic, but at least catch things
+			information.getWarnings().add(new Warning(trimmedMessage));
+		}
 	}
 
 	private void processError(String trimmedMessage) {
 		//Very generic, but at least catch things
-		information.addWarning(null, trimmedMessage, WarningType.Unknown);
+		information.getWarnings().add(new Warning(trimmedMessage));
 	}
 
 	private void processInfo(String trimmedMessage) {
@@ -219,7 +208,10 @@ public class TrainingLogParser extends LogParser {
 			storeConfigurationSplitByCharacter(information.getConfiguration(), trimmedMessage, ":");
 		} else if (trimmedMessage.startsWith("JVM_StartThread() ignored:")) {
 //[info][aot       ] JVM_StartThread() ignored: java.lang.ref.Reference$ReferenceHandler
-			this.information.addWarning(null, trimmedMessage, WarningType.CacheCreation);
+			var className = trimmedMessage.substring(trimmedMessage.indexOf("ignored: ") + 9);
+			var classObj = this.information.getElements(className,
+					null, null, true, true, "Class").findAny();
+			this.information.addWarning(classObj.orElse(new ClassObject(className)), trimmedMessage, WarningType.CacheCreation);
 		}
 	}
 

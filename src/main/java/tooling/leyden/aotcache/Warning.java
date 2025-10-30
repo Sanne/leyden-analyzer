@@ -35,35 +35,11 @@ public class Warning {
 	}
 
 	public Warning(Element element, String description, WarningType type) {
-		this.element = element;
-		this.type = type;
-		this.setId(idGenerator.getAndIncrement());
+		this(element, new AttributedString(description), type);
+	}
 
-		AttributedStringBuilder sb = new AttributedStringBuilder();
-
-		if (this.element != null) {
-			sb.append("Element '");
-			sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.CYAN));
-			sb.append(this.element.getKey());
-			sb.style(AttributedStyle.DEFAULT);
-			sb.append("' of type '");
-			sb.style(AttributedStyle::bold);
-			sb.append(this.element.getType());
-			sb.style(AttributedStyle::boldOff);
-			sb.append("' couldn't be ");
-			if (this.type == WarningType.CacheCreation) {
-				sb.append("stored into the AOTcache");
-			} else if (this.type == WarningType.CacheLoad) {
-				sb.append("loaded from the AOTcache");
-			} else {
-				sb.append("processed");
-			}
-			sb.append(" because: ");
-		}
-
-		sb.append(description);
-
-		this.message = sb.toAttributedString();
+	public Warning(String description) {
+		this(null, new AttributedString(description), WarningType.Unknown);
 	}
 
 	public String getId() {
@@ -76,6 +52,10 @@ public class Warning {
 
 	public WarningType getType() {
 		return type;
+	}
+
+	public Element getElement() {
+		return element;
 	}
 
 	public AttributedString getDescription() {

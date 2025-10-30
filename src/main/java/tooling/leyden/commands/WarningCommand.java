@@ -9,6 +9,7 @@ import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.MethodObject;
 import tooling.leyden.aotcache.Warning;
 import tooling.leyden.aotcache.WarningType;
+import tooling.leyden.commands.autocomplete.Identifiers;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +45,14 @@ class WarningCommand implements Runnable {
 	)
 	protected Integer limit;
 
+	@CommandLine.Option(names = {"--identifier", "-i"},
+			description ={"The object identifier. Use the full qualified name."},
+			defaultValue = "",
+			arity = "0..1",
+			paramLabel = "<id>",
+			completionCandidates = Identifiers.class)
+	protected String name;
+
 	// Packages that are usually not part of the user application
 	// so we skip them on our auto checks
 	private String[] excludedPackages = new String[]{"java", "jdk", "sun", "com.sun"};
@@ -53,11 +62,22 @@ class WarningCommand implements Runnable {
 	}
 
 	private void printWarnings() {
+		final var wa = getWarnings();
+		wa.forEach(element -> element.getDescription().println(parent.getTerminal()));
+		parent.getOut().println("Found " + wa.size() + " warnings.");
+	}
+
+	protected List<Warning> getWarnings() {
 		List<Warning> wa = new ArrayList<>();
 		wa.addAll(parent.getInformation().getWarnings());
 		wa.addAll(parent.getInformation().getAutoWarnings());
+
 		if (types != null && types.length > 0) {
 			wa.removeIf(warning -> Arrays.stream(types).anyMatch(t -> t.equalsIgnoreCase(warning.getType().name())));
+		}
+
+		if (name != null && !name.isBlank()) {
+			wa.removeIf(w -> w.getElement() == null || !w.getElement().getKey().equalsIgnoreCase(name));
 		}
 
 		if (limit != null) {
@@ -70,10 +90,7 @@ class WarningCommand implements Runnable {
 		}
 
 		wa.sort(Comparator.comparing(Warning::getId));
-
-		wa.forEach(element -> element.getDescription().println(parent.getTerminal()));
-
-		parent.getOut().println("Found " + wa.size() + " warnings.");
+		return wa;
 	}
 
 	@Command(mixinStandardHelpOptions = true,
