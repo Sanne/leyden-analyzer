@@ -112,5 +112,10 @@ class WarningCommandTest extends DefaultTest {
 
 		assertEquals(9, warningCommand.getWarnings().size());
 
+
+		warningCommand.name = "java.util.concurrent.atomic.AtomicReference";
+		assertEquals(1, warningCommand.getWarnings().size());
+		warningCommand.name = null;
+
 	}
 }

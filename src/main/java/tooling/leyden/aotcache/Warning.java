@@ -4,6 +4,7 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -29,7 +30,14 @@ public class Warning {
 	private static AtomicInteger idGenerator = new AtomicInteger();
 
 	public Warning(List<Element> e, AttributedString message, WarningType type) {
-		this.element = (e != null ? e : List.of());
+		this.element = new ArrayList<>();
+		this.element.addAll(e);
+		//If the element is a Symbol with a class, add the class to the list too:
+		List.copyOf(this.element).stream()
+				.filter(el -> el.getType().equalsIgnoreCase("Symbol"))
+				.forEach(el -> ((ReferencingElement)el).getReferences().stream()
+						.filter(c -> c.getType().equalsIgnoreCase("Class"))
+						.forEach(this.element::add));
 		this.type = type;
 		this.message = message;
 		this.setId(idGenerator.getAndIncrement());
