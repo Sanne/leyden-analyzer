@@ -67,7 +67,9 @@ This is usually the first step. We can add an AOT map file, which are generated 
 map:none:filesize=0` when executing a training run.
 
 ```bash
-> load aotCache aot.map
+load aotCache aot.map
+```
+```
 Adding aot.map to our analysis...
 This is a big file. The size of this file is 331 MB. This may take a while.
 Consider using the `--background` option to load this file.
@@ -81,7 +83,7 @@ After loading the AOT Map File, we can explore the elements that have been saved
 We can load logs for the training or the production run.
 
 ```bash
-> load productionLog production.log
+load productionLog production.log
 ```
 ```
 Adding production.log to our analysis...
@@ -89,7 +91,7 @@ File production.log added in 280ms.
 ```
 
 ```bash
-> load trainingLog training.log
+load trainingLog training.log
 ```
 ```
 Adding training.log to our analysis...
@@ -103,7 +105,7 @@ After loading some information, we can start the analysis.
 The `info` command is very useful to get a general idea of what is happening in your application:
 
 ```bash
-> info
+info
 ```
 ```
 RUN SUMMARY: 
@@ -140,7 +142,9 @@ Methods in AOT Cache: 121.392
 We have the `ls` command to list what we know is on the cache. Most options in all the commands are autocompletable, so you can use `tab` to understand what to fill in there.
 
 ```bash
-> ls 
+ls 
+```
+```
 [....]
 [Symbol] (Ljava/lang/classfile/ClassFileElement;)Ljava/lang/classfile/ClassFileBuilder;
 [Symbol] (Ljava/lang/classfile/ClassFileElement;)V
@@ -159,7 +163,9 @@ Found 685694 elements.
 
 We can filter by type of element and package (the parameters are auto-completable with suggestions):
 ```bash
-> ls -t=ConstantPool -pn=sun.util.locale
+ls -t=ConstantPool -pn=sun.util.locale
+```
+```
 [...]
 [ConstantPool] sun.util.locale.provider.NumberFormatProviderImpl
 [ConstantPool] sun.util.locale.provider.LocaleProviderAdapter$Type
@@ -173,7 +179,9 @@ Found 32 elements.
 We can also explore the potential errors/warnings/incidents. They may have been loaded from a log file, or they can be auto-detected.
 
 ```bash
-> warning
+warning
+```
+```
 000 [Unknown] Preload Warning: Verification failed for org.infinispan.remoting.transport.jgroups.JGroupsRaftManager
 001 [Unknown] Preload Warning: Verification failed for org.apache.logging.log4j.core.async.AsyncLoggerContext
 002 [StoringIntoAOTCache] Element 'org.apache.logging.log4j.core.async.AsyncLoggerContext' of type 'Class' couldn't be
@@ -223,7 +231,7 @@ To explore a bit more about what is on stored on the cache, we can use the comma
 Depending on if it was loaded from one type of file or another, the details may vary:
 
 ```bash
-> describe -i=java.util.stream.Collectors -t=Class
+describe -i=java.util.stream.Collectors -t=Class
 ```
 ```
 -----
@@ -240,7 +248,7 @@ Depending on if it was loaded from one type of file or another, the details may 
 It has a verbose option to show a bit more info:
 
 ```bash
-> describe -i=org.infinispan.server.loader.Loader -t=Class -v
+describe -i=org.infinispan.server.loader.Loader -t=Class -v
 ```
 ```
 -----
@@ -276,7 +284,7 @@ The basic tree command shows the graph dependency of what classes are used by th
 **This graph is strongly based on a training log, so you must load it before getting the right information.**
 
 ```bash
-> tree -i=java.util.List  -max=5
+tree -i=java.util.List  -max=5
 ```
 ```
 Calculating dependency graph... 
@@ -298,7 +306,7 @@ Calculating dependency graph...
 There is also a `reverse` argument to show which classes use the root class. This is useful to understand why this class was loaded into the cache, as it shows who triggered its allocation in memory.
 
 ```bash
-> tree -i=java.util.List  -max=5 --reverse
+tree -i=java.util.List  -max=5 --reverse
 ```
 ```
 Calculating dependency graph... 
@@ -324,9 +332,15 @@ To avoid infinite loops and circular references, each element will be iterated o
 We can clean the loaded files and start from scratch
 
 ```bash
-> clean
+clean
+```
+```
 Cleaned the elements. Load again files to start a new analysis.
-> ls
+```
+```bash
+ls
+```
+```
 Found 0 elements.
 ```
 
@@ -359,12 +373,11 @@ load trainingLog training.log
 ```
 Adding training.log to our analysis...
 File training.log added in 2095ms.
-> File aot.map added in 16466ms.
 ```
 
 Now we just simply run the `tree --reverse` command to see which classes use my root class. Note that this can be a very long graph, you can use `n`, `-epn`, `-max`, and `--level` arguments to filter them out.
 ```bash
-> tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan --reverse
+tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan --reverse
 ```
 ```
 Calculating dependency graph... 
@@ -419,7 +432,7 @@ File training.log added in 2095ms.
 Now we just simply run the `tree` command to see which classes are used by my root class. Note that this can be a very long graph, you can use `n`, `-epn`, `-max`, and `--level` arguments to filter them out.
 
 ```bash
-> tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan
+tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan
 ```
 ```
 Calculating dependency graph...
@@ -514,8 +527,7 @@ warning
  stored into the AOTcache because: Failed verification
 003 [CacheCreation] Element 'org.apache.logging.log4j.core.async.AsyncLoggerContext' of type 'Class' couldn't be store
 d into the AOTcache because: Failed verification
-Found 4 warnings.
-> 
+Found 4 warnings. 
 ```
 
 We find there two warnings associated to this element: `000` and `002`. Now we have something to investigate.
