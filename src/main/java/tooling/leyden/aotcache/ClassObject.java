@@ -15,7 +15,7 @@ import java.util.List;
 public class ClassObject extends ReferencingElement {
 
 	private String name;
-	private String packageName;
+	private String packageName = "";
 	private List<MethodObject> methods = new ArrayList<>();
 	private String arrayPrefix = "";
 	private Element klassTrainingData;
