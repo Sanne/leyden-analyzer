@@ -507,30 +507,28 @@ describe -i=org.infinispan.remoting.transport.jgroups.JGroupsRaftManager --use=b
 -----
 ```
 
-There are multiple reasons why this happened and we can't cover all. But we can load the training run log and see if we can find any warning about it:
+There are multiple reasons why this happened and we can't cover all. But we can load the training run log and see if we can find any warning related to the class:
 
 ```bash
 load trainingLog training.log
 ```
 ```
 Adding training.log to our analysis...
-File training.log added in 1278ms.
+File log.training added in 8259ms.
 ```
 
 ```bash
-warning
+warning -i=org.infinispan.remoting.transport.jgroups.JGroupsRaftManager
 ```
 ```
-000 [Unknown] Preload Warning: Verification failed for org.infinispan.remoting.transport.jgroups.JGroupsRaftManager
-001 [Unknown] Preload Warning: Verification failed for org.apache.logging.log4j.core.async.AsyncLoggerContext
-002 [CacheCreation] Element 'org.infinispan.remoting.transport.jgroups.JGroupsRaftManager' of type 'Class' couldn't be
- stored into the AOTcache because: Failed verification
-003 [CacheCreation] Element 'org.apache.logging.log4j.core.async.AsyncLoggerContext' of type 'Class' couldn't be store
-d into the AOTcache because: Failed verification
-Found 4 warnings. 
+0074 [CacheCreation] Preload Warning: Verification failed for org.infinispan.remoting.transport.jgroups.JGroupsRaftMan
+ager
+0076 [CacheCreation]  Skipping org/infinispan/remoting/transport/jgroups/JGroupsRaftManager: Failed verification
+25941 [CacheCreationRevertedKlass] reverted klass  CP entry [ 32]: org/infinispan/remoting/transport/jgroups/RaftUtil 
+unreg => org/infinispan/remoting/transport/jgroups/JGroupsRaftManager
 ```
 
-We find there two warnings associated to this element: `000` and `002`. Now we have something to investigate.
+We find there three warnings associated to this element. Now we have something to investigate.
 
 ### Why is this method not properly trained?
 
