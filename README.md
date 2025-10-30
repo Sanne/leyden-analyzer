@@ -51,12 +51,8 @@ Loading an AOT Cache Map File gives a better overview on what the cache contains
 
 Loading log files gives a better overview of why things are (or are not) in the cache and detect potential errors.
 
-> **Do not mix logs and caches from different runs.**
->
+> **Do not mix logs and caches from different runs.*
 > That will lead to inconsistent and wrong analysis.
-> If you mix production and training runs, there's no way
-> we can distinguish if an issue happened during the
-> creation of the cache or during the loading of the cache.
 
 You may mix logs and aot map files from the same training or production run. Then, the information will complement each other. It is recommended to load first the AOT cache map so when processing the log we already have the details about the elements inside the cache.
 
