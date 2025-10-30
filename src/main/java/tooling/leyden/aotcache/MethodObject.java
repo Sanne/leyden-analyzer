@@ -191,21 +191,17 @@ public class MethodObject extends ReferencingElement {
 			sb.append(" associated to it.");
 		}
 
+		sb.append(AttributedString.NEWLINE);
 		if (this.methodTrainingData != null) {
-			sb.append(AttributedString.NEWLINE);
 			sb.append(leftPadding + "It has a ");
 			sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
-			sb.append("MethodTrainingData");
-			sb.style(AttributedStyle.DEFAULT);
-			sb.append(" associated to it.");
 		} else {
-			sb.append(AttributedString.NEWLINE);
 			sb.append(leftPadding + "It has no ");
 			sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED));
-			sb.append("MethodTrainingData");
-			sb.style(AttributedStyle.DEFAULT);
-			sb.append(" associated to it.");
 		}
+		sb.append("MethodTrainingData");
+		sb.style(AttributedStyle.DEFAULT);
+		sb.append(" associated to it.");
 		return sb.toAttributedString();
 	}
 
