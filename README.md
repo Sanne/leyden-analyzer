@@ -188,9 +188,9 @@ When listing, the search can be limited for each type of warning with `warning <
 If you want to auto-detect issues, you can run the command `warning check`.
 
 ```bash
+warning check
 ```
 ```
-> warning check 3
 Trying to detect problems...
 000 [Unknown] Preload Warning: Verification failed for org.infinispan.remoting.transport.jgroups.JGroupsRaftManager
 001 [Unknown] Preload Warning: Verification failed for org.apache.logging.log4j.core.async.AsyncLoggerContext
