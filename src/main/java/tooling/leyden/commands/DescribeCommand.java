@@ -95,6 +95,22 @@ class DescribeCommand implements Runnable {
 								"to this element.");
 						sb.append(AttributedString.NEWLINE);
 					}
+
+					if (!e.getWhereDoesItComeFrom().isEmpty()) {
+						sb.append(leftPadding);
+						sb.append(AttributedString.NEWLINE);
+						sb.append(leftPadding + "Where does this element come from: ");
+						sb.append(AttributedString.NEWLINE);
+						sb.append(leftPadding + "  _____");
+						sb.append(AttributedString.NEWLINE);
+						e.getWhereDoesItComeFrom().forEach(s -> {
+							sb.append(leftPadding + "  > ");
+							sb.append(s);
+							sb.append(AttributedString.NEWLINE);
+						});
+						sb.append(leftPadding + "  _____");
+						sb.append(AttributedString.NEWLINE);
+					}
 				}
 				sb.append("-----");
 				sb.append(AttributedString.NEWLINE);
