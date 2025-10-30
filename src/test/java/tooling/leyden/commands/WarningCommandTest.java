@@ -9,7 +9,8 @@ import tooling.leyden.commands.logparser.TrainingLogParser;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 class WarningCommandTest extends DefaultTest {
@@ -75,5 +76,41 @@ class WarningCommandTest extends DefaultTest {
 
 		warningCommand.name = "java.lang.ref.Reference$ReferenceHandler";
 		assertEquals(1, warningCommand.getWarnings().size());
+		warningCommand.name = null;
+	}
+
+	@Test
+	void testRevertedAot() {
+		trainingParser.accept("[trace  ][aot,resolve ] reverted indy   CP entry [129]: " +
+				"org/infinispan/notifications/cachelistener/BaseQueueingSegmentListener (1)    " +
+				"java/lang/invoke/LambdaMetafactory.metafactory:(Ljava/lang/invoke/MethodHandles$Lookup;" +
+				"Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;");
+		trainingParser.accept("[trace  ][aot,resolve ] reverted indy   CP entry [147]: " +
+				"org/infinispan/notifications/cachelistener/BaseQueueingSegmentListener (2)    " +
+				"java/lang/invoke/LambdaMetafactory.metafactory:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;");
+		trainingParser.accept("[trace  ][aot,resolve ] reverted indy   CP entry [150]: " +
+				"org/infinispan/notifications/cachelistener/BaseQueueingSegmentListener (3)    java/lang/invoke/LambdaMetafactory.metafactory:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;");
+
+		trainingParser.accept("[trace  ][aot,resolve ] reverted method CP entry [  6]: " +
+				"io/reactivex/rxjava3/internal/jdk8/FlowableStageSubscriber " +
+				"io/reactivex/rxjava3/internal/jdk8/FlowableStageSubscriber.afterSubscribe:" +
+				"(Lorg/reactivestreams/Subscription;)V");
+		trainingParser.accept("[trace  ][aot,resolve ] reverted method CP entry [ 13]: " +
+				"io/reactivex/rxjava3/internal/jdk8/FlowableStageSubscriber " +
+				"java/util/concurrent/atomic/AtomicReference.lazySet:(Ljava/lang/Object;)V");
+		trainingParser.accept("[trace  ][aot,resolve ] reverted method CP entry [ 14]: " +
+				"io/reactivex/rxjava3/internal/jdk8/FlowableStageSubscriber io/reactivex/rxjava3/internal/jdk8/FlowableStageSubscriber.cancelUpstream:()V");
+
+		trainingParser.accept("[trace  ][aot,resolve ] reverted klass  CP entry [  8]: " +
+				"io/reactivex/rxjava3/internal/jdk8/ObservableCollectWithCollector unreg => java/lang/Throwable");
+		trainingParser.accept("[trace  ][aot,resolve ] reverted klass  CP entry [  7]: " +
+				"io/reactivex/rxjava3/internal/operators/observable/ObservableCollect unreg => " +
+				"java/lang/Throwable");
+		trainingParser.accept("[trace  ][aot,resolve ] reverted klass  CP entry [  7]: " +
+				"io/reactivex/rxjava3/internal/operators/observable/ObservableToList unreg => java/lang/Throwable");
+
+
+		assertEquals(9, warningCommand.getWarnings().size());
+
 	}
 }

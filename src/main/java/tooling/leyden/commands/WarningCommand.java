@@ -73,11 +73,11 @@ class WarningCommand implements Runnable {
 		wa.addAll(parent.getInformation().getAutoWarnings());
 
 		if (types != null && types.length > 0) {
-			wa.removeIf(warning -> Arrays.stream(types).anyMatch(t -> t.equalsIgnoreCase(warning.getType().name())));
+			wa.removeIf(warning -> Arrays.stream(types).noneMatch(t -> t.equalsIgnoreCase(warning.getType().name())));
 		}
 
 		if (name != null && !name.isBlank()) {
-			wa.removeIf(w -> w.getElement() == null || !w.getElement().getKey().equalsIgnoreCase(name));
+			wa.removeIf(w -> !w.affects(name));
 		}
 
 		if (limit != null) {
@@ -183,7 +183,7 @@ class WarningCommand implements Runnable {
 					sb.append(entry.getValue().toString());
 					sb.style(AttributedStyle.DEFAULT);
 					sb.append(warningString);
-					result.add(new Warning(null, sb.toAttributedString(), warningType));
+					result.add(new Warning(List.of(), sb.toAttributedString(), warningType));
 				});
 	}
 

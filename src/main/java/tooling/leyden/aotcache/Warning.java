@@ -4,6 +4,7 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -18,7 +19,7 @@ public class Warning {
 	/**
 	 * Element that suffered the problem.
 	 */
-	private Element element;
+	private List<Element> element;
 
 	/**
 	 * String ready to be printed regarding this error.
@@ -27,19 +28,23 @@ public class Warning {
 
 	private static AtomicInteger idGenerator = new AtomicInteger();
 
-	public Warning(Element e, AttributedString message, WarningType type) {
-		this.element = e;
+	public Warning(List<Element> e, AttributedString message, WarningType type) {
+		this.element = (e != null ? e : List.of());
 		this.type = type;
 		this.message = message;
 		this.setId(idGenerator.getAndIncrement());
 	}
 
+	public Warning(Element e, AttributedString message, WarningType type) {
+		this((e != null ? List.of(e) : List.of()), message, type);
+	}
+
 	public Warning(Element element, String description, WarningType type) {
-		this(element, new AttributedString(description), type);
+		this((element != null ? List.of(element) : List.of()), new AttributedString(description), type);
 	}
 
 	public Warning(String description) {
-		this(null, new AttributedString(description), WarningType.Unknown);
+		this(List.of(), new AttributedString(description), WarningType.Unknown);
 	}
 
 	public String getId() {
@@ -47,15 +52,16 @@ public class Warning {
 	}
 
 	public void setId(Integer id) {
-		this.id = String.format("%03d", id);
+		this.id = String.format("%04d", id);
 	}
 
 	public WarningType getType() {
 		return type;
 	}
 
-	public Element getElement() {
-		return element;
+	public boolean affects(String id) {
+		return !this.element.isEmpty()
+				&& this.element.stream().anyMatch(element -> element.getKey().equalsIgnoreCase(id));
 	}
 
 	public AttributedString getDescription() {

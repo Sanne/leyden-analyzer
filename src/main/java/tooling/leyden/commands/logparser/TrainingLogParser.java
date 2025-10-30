@@ -1,14 +1,16 @@
 package tooling.leyden.commands.logparser;
 
+import org.jline.utils.AttributedString;
 import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.Configuration;
 import tooling.leyden.aotcache.ConstantPoolObject;
 import tooling.leyden.aotcache.Element;
-import tooling.leyden.aotcache.MethodObject;
 import tooling.leyden.aotcache.ReferencingElement;
 import tooling.leyden.aotcache.Warning;
 import tooling.leyden.aotcache.WarningType;
 import tooling.leyden.commands.LoadFileCommand;
+
+import java.util.List;
 
 public class TrainingLogParser extends LogParser {
 
@@ -33,6 +35,8 @@ public class TrainingLogParser extends LogParser {
 			if (line.level().equals("trace")) {
 				if (line.trimmedMessage().startsWith("archived")) {
 					processAotTraceResolve(line.trimmedMessage());
+				} else if (line.trimmedMessage().startsWith("reverted")) {
+					processAOTReverted(line.trimmedMessage());
 				}
 			}
 		}
@@ -48,36 +52,63 @@ public class TrainingLogParser extends LogParser {
 	}
 
 
+	private void processAOTReverted(String trimmedMessage) {
+		final var splitMessage = trimmedMessage.substring(trimmedMessage.indexOf("]: ") + 2).trim().split("\\s+");
+
+		//First we find the Symbol related to
+		final var parentClassName = splitMessage[0];
+		ReferencingElement parentSymbol = findSymbol(parentClassName);
+		assignClassToSymbol(parentSymbol);
+
+		if (trimmedMessage.startsWith("reverted klass")) {
+//	reverted klass  CP entry [102]: io/reactivex/rxjava3/internal/subscribers/InnerQueuedSubscriber unreg => io/reactivex/rxjava3/internal/util/QueueDrainHelper
+			information.getWarnings().add(
+					new Warning(
+							List.of(parentSymbol, findSymbol(splitMessage[3])),
+							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedKlass));
+		} else if (trimmedMessage.startsWith("reverted field")) {
+// reverted field  CP entry [ 45]: io/netty/channel/AbstractChannelHandlerContext => io/netty/channel/DefaultChannelPipeline.head:Lio/netty/channel/DefaultChannelPipeline$HeadContext;
+
+			final var names = splitMessage[2].split(":");
+			information.getWarnings().add(
+					new Warning(
+							List.of(parentSymbol, findSymbol(names[1]),
+									findSymbol(names[0].substring(0, names[0].lastIndexOf("."))),
+									findSymbol(names[0].substring(names[0].lastIndexOf(".") + 1))),
+							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedField));
+		} else if (trimmedMessage.startsWith("reverted method")
+				|| trimmedMessage.startsWith("reverted interface method")) {
+// reverted method CP entry [ 16]: io/reactivex/rxjava3/internal/jdk8/FlowableStageSubscriber java/util/concurrent/CompletableFuture.complete:(Ljava/lang/Object;)Z
+			final var names = splitMessage[1].split(":");
+			information.getWarnings().add(
+					new Warning(
+							List.of(parentSymbol, findSymbol(names[1]),
+									findSymbol(names[0].substring(0, names[0].lastIndexOf("."))),
+									findSymbol(names[0].substring(names[0].lastIndexOf(".") + 1)),
+									findSymbol(names[1])),
+							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedMethod));
+		} else if (trimmedMessage.startsWith("reverted indy ")) {
+// reverted indy   CP entry [294]: jdk/jfr/internal/dcmd/DCmdDump (0) => java/lang/invoke/LambdaMetafactory.metafactory:
+// (Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;
+			final var names = splitMessage[2].split(":");
+			information.getWarnings().add(
+					new Warning(
+							List.of(parentSymbol, findSymbol(names[1]),
+									findSymbol(names[0].substring(0, names[0].lastIndexOf("."))),
+									findSymbol(names[0].substring(names[0].lastIndexOf(".") + 1)),
+									findSymbol(names[1])),
+							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedIndy));
+		}
+	}
+
+
 	private void processAotTraceResolve(String trimmedMessage) {
 		final var splitMessage = trimmedMessage.substring(trimmedMessage.indexOf("]: ") + 2).trim().split("\\s+");
 
 		//First we find the Symbol related to
 		final var parentClassName = splitMessage[0];
-		var elementSearch = information.getElements(parentClassName, null, null, true, true, "Symbol").findAny();
-		ReferencingElement parentSymbol;
-		if (elementSearch.isPresent()) {
-			parentSymbol = (ReferencingElement) elementSearch.get();
-		} else {
-			parentSymbol = new ReferencingElement(parentClassName, "Symbol");
-			information.addExternalElement(parentSymbol, getSource());
-		}
-
-		// If a class already exists with this Symbol, link it. If not, ignore it.
-		// We will do the heavy creation work on AOT Parser, if any is loaded
-		// because at this point, we don't know anything about the class... except the name
-		// is it cached? is it not? Who knows with this information?
-		var classObj = information.getElements(parentClassName.replaceAll("/", "."), null, null, true, true,
-				"Class").findAny();
-		if (classObj.isPresent()) {
-			((ClassObject) classObj.get()).addSymbol(parentSymbol);
-			parentSymbol.addReference(classObj.get());
-
-			// Now search for the corresponding ConstantPool and, if exists, link this class to its poolHolder
-			// again, don't create it, just... wait for an AOT Cache map file if it does not exist yet
-			information.getElements(parentClassName.replaceAll("/", "."), null, null, true, true,
-					"ConstantPool").findAny()
-					.ifPresent(element -> ((ConstantPoolObject) element).setPoolHolder((ClassObject) classObj.get()));
-		}
+		ReferencingElement parentSymbol = findSymbol(parentClassName);
+		assignClassToSymbol(parentSymbol);
 
 		if (trimmedMessage.startsWith("archived klass")) {
 //	archived klass  CP entry [  2]: org/infinispan/rest/framework/impl/InvocationImpl unreg => java/lang/Object boot
@@ -112,16 +143,45 @@ public class TrainingLogParser extends LogParser {
 		}
 	}
 
+	private void assignClassToSymbol(ReferencingElement parentSymbol) {
+		// If a class already exists with this Symbol, link it. If not, ignore it.
+		// We will do the heavy creation work on AOT Parser, if any is loaded
+		// because at this point, we don't know anything about the class... except the name
+		// is it cached? is it not? Who knows with this information?
+		final var className = parentSymbol.getKey().replaceAll("/", ".");
+		var classObj = information.getElements(className, null, null, true, true,
+				"Class").findAny();
+		ClassObject classObject;
+		if (classObj.isPresent()) {
+			classObject = (ClassObject) classObj.get();
+		} else if (className.startsWith("L") && className.endsWith(";")) {
+			classObj = this.information.getElements(className.substring(1, className.length() - 1),
+					null,
+					null, true,
+					true,
+					"Class").findAny();
+
+			classObject = (ClassObject) classObj.orElse(null);
+		} else {
+			classObject = null;
+		}
+
+		if (classObject != null) {
+			classObject.addSymbol(parentSymbol);
+			parentSymbol.addReference(classObject);
+			// Now search for the corresponding ConstantPool and, if exists, link this class to its poolHolder
+			// again, don't create it, just... wait for an AOT Cache map file if it does not exist yet
+			information.getElements(className, null, null, true, true,
+							"ConstantPool").findAny()
+					.ifPresent(element -> ((ConstantPoolObject) element).setPoolHolder(classObject));
+		}
+
+
+	}
+
 	private void findOrCreateSymbolAndLinkToParent(ReferencingElement parentSymbol, String source, String symbolName) {
 		java.util.Optional<Element> elementSearch;
-		ReferencingElement referencedSymbol;
-		elementSearch = information.getElements(symbolName, null, null, true, true, "Symbol").findAny();
-		if (elementSearch.isPresent()) {
-			referencedSymbol = (ReferencingElement) elementSearch.get();
-		} else {
-			referencedSymbol = new ReferencingElement(symbolName, "Symbol");
-			information.addExternalElement(referencedSymbol, getSource());
-		}
+		ReferencingElement referencedSymbol = findSymbol(symbolName);
 
 		// If a class already exists with this Symbol, link it. If not, ignore it.
 		// We will fill it when an AOT Cache loads, if it loads
@@ -148,13 +208,27 @@ public class TrainingLogParser extends LogParser {
 		parentSymbol.addReference(referencedSymbol);
 	}
 
+	private ReferencingElement findSymbol(String symbolName) {
+		ReferencingElement referencedSymbol;
+		java.util.Optional<Element> elementSearch =
+				information.getElements(symbolName, null, null, true, true, "Symbol")
+						.findAny();
+		if (elementSearch.isPresent()) {
+			referencedSymbol = (ReferencingElement) elementSearch.get();
+		} else {
+			referencedSymbol = new ReferencingElement(symbolName, "Symbol");
+			information.addExternalElement(referencedSymbol, getSource());
+		}
+		return referencedSymbol;
+	}
 
-//[warning][aot] Skipping java/lang/invoke/BoundMethodHandle$Species_LI because it is dynamically generated
+
+	//[warning][aot] Skipping java/lang/invoke/BoundMethodHandle$Species_LI because it is dynamically generated
 	private void processSkipping(String message) {
 		String[] msg = message.trim().split("\\s+");
 		String className = msg[1].replace("/", ".").replace(":", "").trim();
 		Element element = information.getElements(className, null, null, true, true, "Class")
-					.findAny().orElseGet(() -> new ClassObject(className));
+				.findAny().orElseGet(() -> new ClassObject(className));
 		information.addWarning(element, message, WarningType.CacheCreation);
 	}
 
@@ -166,8 +240,7 @@ public class TrainingLogParser extends LogParser {
 					null, null, true, true, "Class").findAny();
 			this.information.addWarning(classObj.orElse(new ClassObject(className)), trimmedMessage,
 					WarningType.CacheCreation);
-		}
-		else {
+		} else {
 			//Very generic, but at least catch things
 			information.getWarnings().add(new Warning(trimmedMessage));
 		}

@@ -5,6 +5,10 @@ package tooling.leyden.aotcache;
  */
 public enum WarningType {
 	CacheCreation,
+	CacheCreationRevertedField,
+	CacheCreationRevertedIndy,
+	CacheCreationRevertedKlass,
+	CacheCreationRevertedMethod,
 	CacheLoad,
 	Training,
 	MethodTraining,

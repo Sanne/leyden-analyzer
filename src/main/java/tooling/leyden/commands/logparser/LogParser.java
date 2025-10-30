@@ -31,7 +31,7 @@ public abstract class LogParser implements Consumer<String> {
 
 		String level = null;
 		if (content.indexOf("[") >= 0 && content.indexOf("]") > 0) {
-			level = content.substring(content.indexOf("[") + 1, content.indexOf("]"));
+			level = content.substring(content.indexOf("[") + 1, content.indexOf("]")).trim();
 			content = content.substring(content.indexOf("]") + 1);
 		}
 
