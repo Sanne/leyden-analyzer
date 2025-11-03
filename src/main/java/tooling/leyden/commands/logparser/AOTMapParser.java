@@ -11,6 +11,8 @@ import tooling.leyden.commands.LoadFileCommand;
 
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * This class is capable of parsing the AOT logs that generate the AOT cache map.
@@ -20,6 +22,13 @@ public class AOTMapParser implements Consumer<String> {
 	private final LoadFileCommand loadFile;
 	private final Information information;
 
+	private final Pattern assetHeader = Pattern.compile("(0[xX][0-9a-fA-F]+): @@ (\\w+)\\s+(\\d+)?\\s*(.*)");
+	private final String thisSource = "AOT Map";
+
+	// When parsing extra information, we need to keep track of
+	// what element we are processing
+	private Element current = null;
+
 	public AOTMapParser(LoadFileCommand loadFile) {
 		this.loadFile = loadFile;
 		this.information = loadFile.getParent().getInformation();
@@ -28,23 +37,19 @@ public class AOTMapParser implements Consumer<String> {
 
 	@Override
 	public void accept(String content) {
-		if (content.indexOf(": @@") != 18)
-			return;
+		Matcher m = assetHeader.matcher(content);
+		if (m.matches()) {
+			processAssetHeader(m.group(1), m.group(2), m.group(3), m.group(4), content);
+		}
+	}
 
+	private void processAssetHeader(String address, String type, String size_s, String identifier, String content) {
 		try {
-			final var thisSource = "AOT Map";
-			String[] contentParts = content.split(" +");
-
-			final var address = contentParts[0].substring(0, contentParts[0].length() - 1);
-			var type = contentParts[2];
-			Integer size;
-			try {
-				size = Integer.valueOf(contentParts[3]);
-			} catch (NumberFormatException e) {
-				size = -1;
+			String[] contentParts = content.split("\\s+");
+			Integer size = -1;
+			if (size_s != null) {
+				size = Integer.valueOf(size_s);
 			}
-			final var identifier =
-					content.substring(content.indexOf(" " + contentParts[3]) + 1 + contentParts[3].length()).trim();
 
 			Element element;
 
@@ -123,7 +128,7 @@ public class AOTMapParser implements Consumer<String> {
 //					0x00000008049a8410:   0000000000000005 0000000801e563d0 0000000801e56600 0000000801e56420   .........c.......f...... d......
 //					0x00000008049a8430:   0000000801e543a8 0000000801e548a8 0000000000000005 0000000801e58dc0   .C.......H................
 				type = "Misc-data";
-				size = Integer.valueOf(contentParts[4]);
+				size = Integer.valueOf(contentParts[1]);
 				element = new BasicObject(address);
 			} else if (type.equalsIgnoreCase("Object")) {
 				//Instances of classes:
@@ -135,7 +140,8 @@ public class AOTMapParser implements Consumer<String> {
 //				0x00000000ffe94558: @@ Object (0xffe94558) java.lang.String "sun.util.locale.BaseLocale"
 				//java.lang.Class instances (they have been pre-created by <clinit> method:
 //				0x00000000ffef4720: @@ Object (0xffef4720) java.lang.Class Lsun/util/locale/BaseLocale$1;
-				element = processObject(contentParts, content);
+				element = processObject(contentParts);
+				current = element;
 			} else {
 				loadFile.getParent().getOut().println("Unidentified: " + type);
 				loadFile.getParent().getOut().println(content);
@@ -152,7 +158,7 @@ public class AOTMapParser implements Consumer<String> {
 		}
 	}
 
-	private Element processObject(String[] contentParts, String content) {
+	private Element processObject(String[] contentParts) {
 		ReferencingElement element;
 		var id = "";
 		for (int i = 3; i < contentParts.length; i++) {
