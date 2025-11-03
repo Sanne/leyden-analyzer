@@ -64,7 +64,7 @@ class AOTCacheParserTest extends DefaultTest {
 	}
 
 	@Test
-	void acceptObjectsWithReferences()  {
+	void acceptObjectsWithReferences() {
 		var classObject = new ClassObject("java.lang.Float");
 		information.addAOTCacheElement(classObject, "test");
 
@@ -106,9 +106,9 @@ class AOTCacheParserTest extends DefaultTest {
 		assertEquals(1, information.getElements(null, null, null, true, false, "Class").count());
 		for (Element e : information.getElements(null, null, null, true, false, "Symbol").toList()) {
 			assertTrue(e instanceof ReferencingElement);
-			assertEquals(0, ((ReferencingElement)e).getReferences().size());
+			assertEquals(0, ((ReferencingElement) e).getReferences().size());
 		}
-		ClassObject classObject =  (ClassObject) information.getElements(null, null, null, true, false, "Class").findAny().get();
+		ClassObject classObject = (ClassObject) information.getElements(null, null, null, true, false, "Class").findAny().get();
 		assertEquals(2, classObject.getSymbols().size());
 
 	}
@@ -163,7 +163,7 @@ class AOTCacheParserTest extends DefaultTest {
 
 		assertEquals(2, information.getElements(null, null, null, true, false, "ConstantPool").count());
 		assertTrue(information.getElements(null, null, null, true, false, "ConstantPool")
-				.allMatch(cp -> ((ConstantPoolObject)cp).getConstantPoolCacheAddress() != null));
+				.allMatch(cp -> ((ConstantPoolObject) cp).getConstantPoolCacheAddress() != null));
 
 		assertEquals(20, information.getElements(null, null, null, true, false, "Symbol").count());
 		assertEquals(8, information.getElements(null, null, null, true, false, "Object").count());
@@ -176,7 +176,7 @@ class AOTCacheParserTest extends DefaultTest {
 
 		assertEquals(3 + 1, information.getElements(null, null, null, true, false, "Class").count());
 		information.getElements(null, null, null, true, false, "Class")
-				.allMatch(c -> ((ClassObject)c).getSymbols().size() > 0);
+				.allMatch(c -> ((ClassObject) c).getSymbols().size() > 0);
 
 		//Make sure we didn'0t create unexpected assets in the cache:
 		assertEquals(2 + 20 + 8 + 3 + 1, information.getAll().size());
@@ -320,7 +320,7 @@ class AOTCacheParserTest extends DefaultTest {
 		MethodObject method =
 				(MethodObject) information.getElements("int java.util.concurrent.ConcurrentHashMap.spread(int)",
 								null, null, false, false, "Method")
-				.findAny().get();
+						.findAny().get();
 		assertEquals(2, method.getCompileTrainingData().size());
 		assertNotNull(method.getCompileTrainingData().get(3));
 		assertNotNull(method.getCompileTrainingData().get(4));
@@ -343,6 +343,33 @@ class AOTCacheParserTest extends DefaultTest {
 			ReferencingElement re = (ReferencingElement) e;
 			assertEquals(0, re.getReferences().size());
 		}
+	}
+
+	@Test
+	void detectClassLoaders() {
+		String mapfile =
+				"""
+						0x00000008007f4290: @@ Class             688 java.lang.String
+						0x00000008008057c8: @@ Class             560 java.lang.module.ModuleDescriptor
+						0x0000000800932e00: @@ Class             560 java.lang.module.ModuleDescriptor$Version
+						0x00000008007eee30: @@ Class             512 [Ljava.lang.Object;
+						0x000000080084e2e8: @@ Class             528 jdk.internal.loader.ClassLoaders
+						0x0000000800851090: @@ Class             840 jdk.internal.loader.ClassLoaders$AppClassLoader
+						0x00000008008518b0: @@ Class             832 jdk.internal.loader.ClassLoaders$PlatformClassLoader
+						0x0000000800853708: @@ Class             832 jdk.internal.loader.ClassLoaders$BootClassLoader
+						0x00000008008b0a08: @@ Class             1632 java.util.ArrayList
+						""";
+
+		BufferedReader reader = new BufferedReader(new StringReader(mapfile));
+		reader.lines().forEach(aotCacheParser::accept);
+
+		assertEquals(9, information.getElements(null, null, null, true, true, "Class").count());
+		assertEquals(4, information.getElements(null, null, null, true, true, "Class")
+				.filter(e -> ((ClassObject)e).isClassLoader()).count());
+
+		assertTrue(information.getElements(null, null, null, true, true, "Class")
+				.filter(e -> ((ClassObject)e).isClassLoader())
+				.allMatch(e -> ((ClassObject) e).getPackageName().equalsIgnoreCase("jdk.internal.loader")));
 	}
 
 }

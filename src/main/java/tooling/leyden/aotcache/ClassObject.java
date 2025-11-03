@@ -20,11 +20,17 @@ public class ClassObject extends ReferencingElement {
 	private String arrayPrefix = "";
 	private Element klassTrainingData;
 	private List<ReferencingElement> symbols = new ArrayList<>();
+	private Boolean isClassLoader = false;
 
 	public ClassObject(String identifier) {
 		this.setName(identifier.substring(identifier.lastIndexOf(".") + 1));
 		if (identifier.indexOf(".") > 0) {
 			this.setPackageName(identifier.substring(0, identifier.lastIndexOf(".")));
+		}
+
+		if (this.getPackageName().equalsIgnoreCase("jdk.internal.loader")
+				&& this.getName().startsWith("ClassLoaders")) {
+			isClassLoader = true;
 		}
 	}
 
@@ -46,6 +52,10 @@ public class ClassObject extends ReferencingElement {
 
 	public List<MethodObject> getMethods() {
 		return methods;
+	}
+
+	public Boolean isClassLoader() {
+		return isClassLoader;
 	}
 
 	public List<ReferencingElement> getSymbols() {
@@ -118,6 +128,14 @@ public class ClassObject extends ReferencingElement {
 			sb.style(AttributedStyle.DEFAULT);
 		}
 		sb.append("included in the AOT cache.");
+
+		if (isClassLoader()) {
+			sb.append(AttributedString.NEWLINE);
+			sb.style(AttributedStyle.DEFAULT.bold());
+			sb.append(leftPadding + "This class is a class loader.");
+			sb.style(AttributedStyle.DEFAULT);
+		}
+
 		int trained = 0;
 		int run = 0;
 		if (!this.getMethods().isEmpty()) {
