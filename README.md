@@ -6,7 +6,10 @@ This is a work-in-progress and there is no stable interface, commands change as 
 
 ## Running the application
 
-You can find some already-packaged jar files on the [releases page](https://github.com/Delawen/leyden-analyzer/releases) that you can download and execute with a simple `java -jar leyden-analyzer-*-runner.jar`.
+You can find some already-packaged jar files on the [releases page](https://github.com/Delawen/leyden-analyzer/releases) that you can download and execute with a simple 
+```bash
+java -jar leyden-analyzer-*-runner.jar
+```
 
 Or if you clone this source code, just `mvn package` and then `java -jar target/quarkus-app/quarkus-run.jar` to run it.
 
@@ -16,7 +19,7 @@ Or if you have [JBang](https://jbang.dev) installed, just run:
 jbang analyzer@delawen/leyden-analyzer
 ```
 
-NB: The analyzer is not published officially, so JBang might not always detect that a new version is available.
+> NB: The analyzer is not published officially, so JBang might not always detect that a new version is available.
 In that case run JBang with `--fresh` to force it to download the latest version: `jbang --fresh analyzer@delawen/leyden-analyzer`.
 You might need to be patient because it uses [JitPack](https://jitpack.io) to build the tool on demand.
 
