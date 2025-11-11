@@ -28,8 +28,8 @@ You might need to be patient because it uses [JitPack](https://jitpack.io) to bu
 There is a `help` command that is very self-explanatory. Please, use it. 
 
 You can jump to the **[Examples](#examples-of-usage)** if you are in a hurry to quickly answer common questions:
-* [Why is this class in my AOT cache?](#why-is-a-class-in-my-aot-cache)
-* [Which classes do this class drag into the cache?](#which-classes-do-this-class-drag-into-the-cache)
+* [Why is this class in my AOT cache?](#why-is-a-class-stored-in-my-AOT-cache)
+* [Which classes do this class drag into the cache?](#which-classes-do-a-class-drag-into-the-cache)
 * [Why is this class NOT in my AOT cache?](#why-is-a-class-not-in-my-aot-cache)
 * [Why is this method not properly trained?](#why-is-a-method-not-properly-trained)
 * [Is my application properly trained?](#is-my-application-properly-trained)
@@ -447,7 +447,7 @@ Just `exit`.
 
 The following section contains examples on how to use this tool to improve your training runs and get better performance thanks to the AOT Cache in Java.
 
-### Why is a class stored in my AOT cache? 
+### Why is a class stored in my AOT cache?
 
 We start by loading an aot cache map file to the tool:
 
@@ -668,7 +668,7 @@ We find there three warnings associated to this element. Now we have something t
 
 If the previous command didn't show any related warning, we can also explore all the warnings trying to find another cause for the missing class.
 
-### Why is this method not properly trained?
+### Why is a method not properly trained?
 
 We start by loading an aot cache map file to the tool:
 
