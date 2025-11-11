@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.ConstantPoolObject;
 import tooling.leyden.aotcache.Element;
+import tooling.leyden.aotcache.ElementFactory;
 import tooling.leyden.aotcache.Information;
 import tooling.leyden.aotcache.MethodObject;
 import tooling.leyden.aotcache.ReferencingElement;
@@ -75,13 +76,13 @@ class AOTCacheParserTest extends DefaultTest {
 
 	@Test
 	void acceptObjectsWithReferences() {
-		var classObject = new ClassObject("java.lang.Float");
+		var classObject = ElementFactory.getOrCreate("java.lang.Float", "Class", null);
 		information.addAOTCacheElement(classObject, "test");
 
-		classObject = new ClassObject("java.lang.String");
+		classObject =  ElementFactory.getOrCreate("java.lang.String", "Class", null);
 		information.addAOTCacheElement(classObject, "test");
 
-		classObject = new ClassObject("java.lang.String$CaseInsensitiveComparator");
+		classObject =  ElementFactory.getOrCreate("java.lang.String$CaseInsensitiveComparator", "Class", null);
 		information.addAOTCacheElement(classObject, "test");
 
 		aotCacheParser.accept("0x00000000fff63458: @@ Object (0xfff63458) java.lang.String$CaseInsensitiveComparator");
@@ -126,7 +127,7 @@ class AOTCacheParserTest extends DefaultTest {
 
 	@Test
 	void acceptObjectsWithExplicitReference() {
-		var classObject = new ClassObject("java.lang.String");
+		var classObject = ElementFactory.getOrCreate("java.lang.String", "Class", null);
 		information.addAOTCacheElement(classObject, "test");
 
 		aotCacheParser.accept("0x0000000801de8110: @@ Symbol            24 java/lang/String");

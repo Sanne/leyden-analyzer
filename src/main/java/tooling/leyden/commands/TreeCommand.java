@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Command(name = "tree", mixinStandardHelpOptions = true,
@@ -180,6 +181,10 @@ class TreeCommand implements Runnable {
 
 		if (reverse) {
 			referenced.addAll(element.getWhoReferencesMe());
+			if (element.getType().equalsIgnoreCase("Object")) {
+				((ReferencingElement)element).getReferences().stream()
+						.filter(e -> e instanceof ClassObject).forEach(referenced::add);
+			}
 		} else {
 			if (element instanceof ClassObject classObject) {
 				referenced.addAll(classObject.getSymbols());
@@ -225,11 +230,12 @@ class TreeCommand implements Runnable {
 				.forEach(e -> elements.addAll(getElementsReferencingThisOne(e, walkedBy))
 				);
 
+
 		//remove parent node, again, if it is there
 		//(it is usually there, because when traversing elements we usually find circular references)
 		elements.remove(element);
 
-		return elements;
+		return filter(elements.stream()).collect(Collectors.toSet());
 	}
 
 	//Delegate on Information for filtering

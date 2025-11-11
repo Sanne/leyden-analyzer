@@ -18,21 +18,17 @@ public class ReferencingElement extends Element {
 	private Set<Element> references = new HashSet<>();
 	private String name;
 
+	public ReferencingElement(String name, String type) {
+		this.setName(name);
+		this.setType(type);
+	}
+
 	public String getName() {
 		return name;
 	}
 
 	public void setName(String name) {
 		this.name = name;
-	}
-
-	public ReferencingElement(){
-
-	}
-
-	public ReferencingElement(String name, String type) {
-		this.setName(name);
-		this.setType(type);
 	}
 
 	@Override
@@ -63,6 +59,7 @@ public class ReferencingElement extends Element {
 
 		return sb.toAttributedString();
 	}
+
 	public void resolvePlaceholders() {
 		List<Element> refs = new ArrayList<>();
 		refs.addAll(references);

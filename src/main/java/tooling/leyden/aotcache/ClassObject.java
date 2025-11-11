@@ -22,7 +22,8 @@ public class ClassObject extends ReferencingElement {
 	private List<ReferencingElement> symbols = new ArrayList<>();
 	private Boolean isClassLoader = false;
 
-	public ClassObject(String identifier) {
+	ClassObject(String identifier) {
+		super(identifier, "Class");
 		this.setName(identifier.substring(identifier.lastIndexOf(".") + 1));
 		if (identifier.indexOf(".") > 0) {
 			this.setPackageName(identifier.substring(0, identifier.lastIndexOf(".")));

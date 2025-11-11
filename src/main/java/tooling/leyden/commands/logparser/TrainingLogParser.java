@@ -4,7 +4,7 @@ import org.jline.utils.AttributedString;
 import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.Configuration;
 import tooling.leyden.aotcache.ConstantPoolObject;
-import tooling.leyden.aotcache.Element;
+import tooling.leyden.aotcache.ElementFactory;
 import tooling.leyden.aotcache.ReferencingElement;
 import tooling.leyden.aotcache.Warning;
 import tooling.leyden.aotcache.WarningType;
@@ -168,9 +168,10 @@ public class TrainingLogParser extends LogParser {
 					true,
 					"Class").findAny();
 
-			classObject = (ClassObject) classObj.orElse(createClasses ? new ClassObject(className) : null);
+			classObject = (ClassObject) classObj
+					.orElse(createClasses ? ElementFactory.getOrCreate(className, "Class", null) : null);
 		} else if (className.contains(".") && !className.contains("(")) {
-			classObject = createClasses ? new ClassObject(className) : null;
+			classObject = createClasses ? (ClassObject) ElementFactory.getOrCreate(className, "Class", null) : null;
 		} else {
 			classObject = null;
 		}
@@ -220,16 +221,8 @@ public class TrainingLogParser extends LogParser {
 	}
 
 	private ReferencingElement findSymbol(String symbolName) {
-		ReferencingElement referencedSymbol;
-		java.util.Optional<Element> elementSearch =
-				information.getElements(symbolName, null, null, true, true, "Symbol")
-						.findAny();
-		if (elementSearch.isPresent()) {
-			referencedSymbol = (ReferencingElement) elementSearch.get();
-		} else {
-			referencedSymbol = new ReferencingElement(symbolName, "Symbol");
-			information.addExternalElement(referencedSymbol, getSource());
-		}
+		ReferencingElement referencedSymbol = (ReferencingElement) ElementFactory.getOrCreate(symbolName, "Symbol", null);
+		referencedSymbol.addSource(getSource());
 		return referencedSymbol;
 	}
 
@@ -238,18 +231,14 @@ public class TrainingLogParser extends LogParser {
 	private void processSkipping(String message) {
 		String[] msg = message.trim().split("\\s+");
 		String className = msg[1].replace("/", ".").replace(":", "").trim();
-		Element element = information.getElements(className, null, null, true, true, "Class")
-				.findAny().orElseGet(() -> new ClassObject(className));
-		information.addWarning(element, message, WarningType.CacheCreation);
+		information.addWarning(ElementFactory.getOrCreate(className, "Class", null), message, WarningType.CacheCreation);
 	}
 
 
 	private void processWarning(String trimmedMessage) {
 		if (trimmedMessage.startsWith("Preload Warning: Verification failed for ")) {
 			var className = trimmedMessage.substring(trimmedMessage.indexOf("for ") + 4);
-			var classObj = this.information.getElements(className,
-					null, null, true, true, "Class").findAny();
-			this.information.addWarning(classObj.orElse(new ClassObject(className)), trimmedMessage,
+			this.information.addWarning(ElementFactory.getOrCreate(className, "Class", null), trimmedMessage,
 					WarningType.CacheCreation);
 		} else {
 			//Very generic, but at least catch things
@@ -293,9 +282,7 @@ public class TrainingLogParser extends LogParser {
 		} else if (trimmedMessage.startsWith("JVM_StartThread() ignored:")) {
 //[info][aot       ] JVM_StartThread() ignored: java.lang.ref.Reference$ReferenceHandler
 			var className = trimmedMessage.substring(trimmedMessage.indexOf("ignored: ") + 9);
-			var classObj = this.information.getElements(className,
-					null, null, true, true, "Class").findAny();
-			this.information.addWarning(classObj.orElse(new ClassObject(className)), trimmedMessage, WarningType.CacheCreation);
+			this.information.addWarning(ElementFactory.getOrCreate(className, "Class", null), trimmedMessage, WarningType.CacheCreation);
 		}
 	}
 

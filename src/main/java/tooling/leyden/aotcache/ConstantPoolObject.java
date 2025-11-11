@@ -12,8 +12,9 @@ public class ConstantPoolObject extends Element {
 	private ClassObject poolHolder;
 	private String key;
 
-	public ConstantPoolObject(String key) {
+	ConstantPoolObject(String key) {
 		this.key = key;
+		this.setType("ConstantPool");
 	}
 
 	public String getConstantPoolCacheAddress() {

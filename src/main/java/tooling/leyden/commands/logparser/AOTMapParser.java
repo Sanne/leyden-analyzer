@@ -6,6 +6,7 @@ import tooling.leyden.aotcache.BasicObject;
 import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.ConstantPoolObject;
 import tooling.leyden.aotcache.Element;
+import tooling.leyden.aotcache.ElementFactory;
 import tooling.leyden.aotcache.MethodObject;
 import tooling.leyden.aotcache.PlaceHolderElement;
 import tooling.leyden.aotcache.ReferencingElement;
@@ -240,22 +241,22 @@ public class AOTMapParser extends Parser {
 				// Metadata Klass
 //					0x0000000800868d58: @@ Class             520 java.lang.constant.ClassDesc
 //					0x0000000800869078: @@ Class             512 [Ljava.lang.constant.ClassDesc;
-				element = processClass(identifier, getSource());
+				element = processClass(identifier, getSource(), address);
 			} else if (type.equalsIgnoreCase("Method")) {
 				//Metadata Method
 //					0x0000000800831250: @@ Method            88 void java.lang.management.MemoryUsage.<init>(javax.management.openmbean.CompositeData)
 // 					0x000000080082ac80: @@ Method            88 char example.Class.example(long)
 //				 	0x0000000800773ea0: @@ Method            88 boolean java.lang.Object.equals(java.lang.Object)
-				element = processMethod(identifier, getSource());
+				element = ElementFactory.getOrCreate(identifier, "Method", address);
 			} else if (type.equalsIgnoreCase("ConstMethod")) {
 //					 0x0000000804990600: @@ ConstMethod       88 void jdk.internal.access.SharedSecrets.setJavaNetHttpCookieAccess(jdk.internal.access.JavaNetHttpCookieAccess)
-				element = processConstMethod(identifier);
+				element = processConstMethod(identifier, address);
 			} else if (type.equalsIgnoreCase("Symbol")) {
 //					0x0000000801e3c000: @@ Symbol            40 [Ljdk/internal/vm/FillerElement;
 //					0x0000000801e3c028: @@ Symbol            32 jdk/internal/event/Event
 //					0x0000000801e3c048: @@ Symbol            24 jdk/jfr/Event
 //					0x0000000801e3c060: @@ Symbol            8 [Z
-				element = processSymbol(identifier);
+				element = processSymbol(identifier, address);
 			} else if (type.equalsIgnoreCase("MethodCounters")
 //					0x0000000801e4c280: @@ MethodCounters    64
 //					0x0000000801e4c280:   0000000800001800 0000000000000002 0000000801e4c228 0000000801e4c280   ................(...............
@@ -271,22 +272,22 @@ public class AOTMapParser extends Parser {
 				element = processConstantPoolCache(identifier, address);
 				type = "ConstantPool";
 			} else if (type.equalsIgnoreCase("ConstantPool")) {
-				element = processConstantPool(identifier);
+				element = processConstantPool(identifier, address);
 			} else if (type.equalsIgnoreCase("KlassTrainingData")) {
 //					0x0000000801bc7e40: @@ KlassTrainingData 40 java.util.logging.LogManager
 //					0x0000000801bc8968: @@ KlassTrainingData 40 java.lang.invoke.MethodHandleImpl$IntrinsicMethodHandle
 //					0x0000000801bcb1a8: @@ KlassTrainingData 40 java.lang.classfile.AttributeMapper$AttributeStability
-				element = processKlassTrainingData(new ReferencingElement(), identifier, address);
+				element = processKlassTrainingData(identifier, address);
 			} else if (type.equalsIgnoreCase("MethodTrainingData")) {
 //					0x0000000801bc7e40: @@ KlassTrainingData 40 java.util.logging.LogManager
 //					0x0000000801bc8968: @@ KlassTrainingData 40 java.lang.invoke.MethodHandleImpl$IntrinsicMethodHandle
 //					0x0000000801bcb1a8: @@ KlassTrainingData 40 java.lang.classfile.AttributeMapper$AttributeStability
-				element = processMethodTrainingData(new ReferencingElement(), identifier, address);
+				element = processMethodTrainingData(identifier, address);
 			} else if (type.equalsIgnoreCase("CompileTrainingData")) {
 //					0x0000000801cd54b8: @@ CompileTrainingData 80 4 void java.lang.ref.Reference.reachabilityFence(java.lang.Object)
 //					0x0000000801cd5508: @@ CompileTrainingData 80 3 void java.lang.ref.Reference.reachabilityFence(java.lang.Object)
 //					0x0000000801cd5558: @@ CompileTrainingData 80 3 java.lang.AbstractStringBuilder java.lang.AbstractStringBuilder.append(java.lang.String)
-				element = processCompileTrainingData(new ReferencingElement(), identifier, address);
+				element = processCompileTrainingData(identifier, address);
 			} else if (type.startsWith("TypeArray")
 //					0x0000000800001d80: @@ TypeArrayU1       600
 //					0x000000080074cc50: @@ TypeArrayOther    800
@@ -305,13 +306,13 @@ public class AOTMapParser extends Parser {
 //					0x0000000802bf50f0: @@ Annotations       32
 //					0x0000000802bf50f0:   0000000802b719a0 0000000000000000 0000000000000000 0000000000000000   ................................
 			) {
-				element = new BasicObject(identifier.isBlank() ? address : identifier);
+				element = ElementFactory.getOrCreate(identifier.isBlank() ? address : identifier, type, address);
 			} else if (type.equalsIgnoreCase("Misc")) {
 //					0x00000008049a8410: @@ Misc data 1985520 bytes
 //					0x00000008049a8410:   0000000000000005 0000000801e563d0 0000000801e56600 0000000801e56420   .........c.......f...... d......
 //					0x00000008049a8430:   0000000801e543a8 0000000801e548a8 0000000000000005 0000000801e58dc0   .C.......H................
 				type = "Misc-data";
-				element = new BasicObject(address);
+				element = ElementFactory.getOrCreate(address, type, address);
 			} else if (type.equalsIgnoreCase("Object")) {
 				//Instances of classes:
 //				0x00000000fff69c68: @@ Object (0xfff69c68) [B length: 45
@@ -322,13 +323,11 @@ public class AOTMapParser extends Parser {
 //				0x00000000ffe94558: @@ Object (0xffe94558) java.lang.String "sun.util.locale.BaseLocale"
 				//java.lang.Class instances (they have been pre-created by <clinit> method:
 //				0x00000000ffef4720: @@ Object (0xffef4720) java.lang.Class Lsun/util/locale/BaseLocale$1;
-				element = processObject(identifier, miniaddress);
+				element = processObject(identifier, miniaddress, address);
 			} else {
 				loadFile.getParent().getOut().println("Unidentified: " + type + " at address " + address);
-				element = new BasicObject(address);
+				element = ElementFactory.getOrCreate(address, type, address);
 			}
-			element.setAddress(address);
-			element.setType(type);
 			element.setSize(size);
 			this.information.addAOTCacheElement(element, getSource());
 			current = element;
@@ -341,13 +340,9 @@ public class AOTMapParser extends Parser {
 		}
 	}
 
-	private Element processObject(String identifier, String miniaddress) {
-		ReferencingElement element;
+	private Element processObject(String identifier, String miniaddress, String address) {
 		var id = miniaddress + " " + identifier;
-
-		// It shouldn't already exist unless we load the map file twice which is a mistake,
-		// so let's assume this is new
-		element = new ReferencingElement(id, "Object");
+		ReferencingElement element = (ReferencingElement) ElementFactory.getOrCreate(id, "Object", address);
 
 		String[] contentParts = identifier.split("\\s+");
 
@@ -379,13 +374,8 @@ public class AOTMapParser extends Parser {
 		return element;
 	}
 
-	private Element processSymbol(String identifier) {
-		Element element;
-
-		var existingSymbol =
-				this.information.getElements(identifier, null, null, true, true,
-						"Symbol").findAny();
-		element = existingSymbol.orElseGet(() -> new ReferencingElement(identifier, "Symbol"));
+	private Element processSymbol(String identifier, String address) {
+		Element element = ElementFactory.getOrCreate(identifier, "Symbol", address);
 
 		//Try to associate it to the corresponding class:
 		var classObject =
@@ -408,16 +398,10 @@ public class AOTMapParser extends Parser {
 	}
 
 	private Element processMethodDataAndCounter(String identifier, String address, String type) {
-		ReferencingElement result = new ReferencingElement();
+		ReferencingElement result = (ReferencingElement) ElementFactory.getOrCreate(identifier.isBlank()? address :
+				identifier, type, address);
 		if (!identifier.isBlank()) {
-			result.setName(identifier);
-			MethodObject method;
-			var methods = this.information.getElements(identifier, null, null, true, false, "Method").toList();
-			if (!methods.isEmpty()) {
-				method = (MethodObject) methods.getFirst();
-			} else {
-				method = new MethodObject(identifier, "Referenced at '" + address + "'", false, this.information);
-			}
+			MethodObject method = (MethodObject) ElementFactory.getOrCreate(identifier, "Method", null);
 			result.addReference(method);
 
 			if (type.equalsIgnoreCase("MethodData")) {
@@ -425,8 +409,6 @@ public class AOTMapParser extends Parser {
 			} else {
 				method.setMethodCounters(result);
 			}
-		} else {
-			result.setName(address);
 		}
 		return result;
 	}
@@ -443,8 +425,8 @@ public class AOTMapParser extends Parser {
 
 		//If not found, create it
 		if (e == null) {
-			e = (ConstantPoolObject) processConstantPool(identifier);
-			this.information.addExternalElement(e, "Referenced by a ConstantPoolCache.");
+			e = (ConstantPoolObject) processConstantPool(identifier, null);
+			e.addSource("Referenced by a ConstantPoolCache.");
 		}
 
 		//And assign the ConstantPoolCache address to the element
@@ -452,36 +434,30 @@ public class AOTMapParser extends Parser {
 		return e;
 	}
 
-	private Element processConstantPool(String identifier) {
-		var element = this.information.getElements(identifier, null, null, true, true, "ConstantPool").findAny();
-		ConstantPoolObject cp;
-		cp = element.map(value -> (ConstantPoolObject) value).orElseGet(() -> new ConstantPoolObject(identifier));
+	private Element processConstantPool(String identifier, String address) {
+		ConstantPoolObject cp = (ConstantPoolObject) ElementFactory.getOrCreate(identifier, "ConstantPool", address);
 
 		if (cp.getPoolHolder() == null) {
 			//Try to associate it to the corresponding class:
-			element = this.information.getElements(identifier, null, null, true, true, "Class").findAny();
+			var element = this.information.getElements(identifier, null, null, true, true, "Class").findAny();
 			element.ifPresent(value -> cp.setPoolHolder((ClassObject) value));
 		}
 
 		return cp;
 	}
 
-	private Element processKlassTrainingData(ReferencingElement e, String identifier, String address) {
+	private Element processKlassTrainingData(String identifier, String address) {
 		//0x0000000801bb4950: @@ KlassTrainingData 40 java.nio.file.Files$AcceptAllFilter
 		//0x0000000801bbd700: @@ KlassTrainingData 40 sun.util.calendar.ZoneInfo
 
+		ReferencingElement e = (ReferencingElement)
+				ElementFactory.getOrCreate(identifier.isBlank() ? address : identifier, "KlassTrainingData", address);
 		//Looking for the Class
 		if (!identifier.isBlank()) {
-			var classs = this.information.getElements(identifier, null, null, true, true, "Class").findAny();
-			if (classs.isEmpty()) {
-				ClassObject classObject = new ClassObject(identifier);
-				classObject.setKlassTrainingData(e);
-				e.addReference(classObject);
-				this.information.addExternalElement(classObject, "Referenced from a KlassTrainingData.");
-			} else {
-				e.addReference(classs.get());
-				((ClassObject) classs.get()).setKlassTrainingData(e);
-			}
+			ClassObject classObject = (ClassObject) ElementFactory.getOrCreate(identifier, "Class", null);
+			classObject.setKlassTrainingData(e);
+			e.addReference(classObject);
+			classObject.addSource("Referenced from a KlassTrainingData.");
 
 			e.setName(identifier);
 		} else {
@@ -491,33 +467,29 @@ public class AOTMapParser extends Parser {
 		return e;
 	}
 
-	private Element processMethodTrainingData(ReferencingElement e, String identifier, String address) {
+	private Element processMethodTrainingData(String identifier, String address) {
 		//0x0000000801c4d7a8: @@ MethodTrainingData 96 void java.util.concurrent.atomic.AtomicLong.lazySet(long)
+
+		ReferencingElement e = (ReferencingElement) ElementFactory.getOrCreate(identifier.isBlank() ? address :
+				identifier, "MethodTrainingData", address);
 
 		//Looking for the Method
 		if (!identifier.isBlank()) {
-			var methods = this.information.getElements(identifier, null, null, true, true, "Method").findAny();
-			MethodObject method;
-			if (methods.isEmpty()) {
-				String source = "Referenced from a MethodTrainingData: " + address;
-				method = new MethodObject(identifier, source, true, this.information);
-				this.information.addExternalElement(method, source);
-			} else {
-				method = (MethodObject) methods.get();
-			}
+			MethodObject method = (MethodObject) ElementFactory.getOrCreate(identifier, "Method", null);
+
 			e.addReference(method);
 			method.setMethodTrainingData(e);
-			e.setName(identifier);
-		} else {
-			e.setName(address);
 		}
 
 		return e;
 	}
 
 
-	private Element processCompileTrainingData(ReferencingElement e, String content, String address) {
+	private Element processCompileTrainingData(String content, String address) {
 		// 0x0000000801a41200: @@ CompileTrainingData 80 3 org.apache.logging.log4j.spi.LoggerContext org.apache.logging.log4j.LogManager.getContext(boolean)
+
+		ReferencingElement e = (ReferencingElement) ElementFactory.getOrCreate(content.isBlank() ? address : content,
+				"CompileTrainingData", address);
 
 		content = content.trim();
 
@@ -525,35 +497,19 @@ public class AOTMapParser extends Parser {
 		if (!content.isBlank()) {
 			Integer level = Integer.valueOf(content.substring(0, 1));
 			String identifier = content.substring(2);
-			var methods = this.information.getElements(identifier, null, null, true, true, "Method").findAny();
-			MethodObject method;
-			if (methods.isEmpty()) {
-				String source = "Referenced from a CompiledTrainingData: " + address;
-				method = new MethodObject(identifier, source, true, this.information);
-				this.information.addExternalElement(method, source);
-			} else {
-				method = (MethodObject) methods.get();
-			}
+			MethodObject method = (MethodObject) ElementFactory.getOrCreate(identifier, "Method", null);
+
 			e.addReference(method);
 			method.addCompileTrainingData(level, e);
-			e.setName(content);
-		} else {
-			e.setName(address);
 		}
 
 		return e;
 	}
 
-	private Element processClass(String identifier, String thisSource) {
+	private Element processClass(String identifier, String thisSource, String address) {
 		// 0x000000080082d490: @@ Class             760 java.lang.StackFrameInfo
-		// It could have been already loaded
-
-		var classs = this.information.getElements(identifier, null, null, true, true, "Class").findAny();
-		if (classs.isPresent()) {
-			classs.get().getSources().add(thisSource);
-			return classs.get();
-		}
-		ClassObject classObject = new ClassObject(identifier);
+		ClassObject classObject = (ClassObject) ElementFactory.getOrCreate(identifier, "Class", address);
+		classObject.addSource(thisSource);
 		//If there are Symbols with this exact class name (dotted or slashed), link them:
 		var symbol = this.information.getElements(identifier.replaceAll("\\.", "/"), null, null, true, true, "Symbol").findAny();
 		symbol.ifPresent(element -> classObject.addSymbol((ReferencingElement) element));
@@ -563,46 +519,18 @@ public class AOTMapParser extends Parser {
 		if (identifier.contains("$$")) {
 			//Lambda class, link to main outer class
 			String parent = identifier.substring(0, identifier.indexOf("$$"));
-			final var parentClass = this.information.getElements(parent, null, null, true, false, "Class").findAny();
-			if (parentClass.isEmpty()) {
-				ClassObject parentObject = new ClassObject(parent);
-				information.addExternalElement(parentObject, "Referenced from a Class element in " + thisSource);
-			} else {
-				classObject.addReference(parentClass.get());
-			}
+			classObject.addReference(ElementFactory.getOrCreate(parent, "Class", null));
 		}
 
 		return classObject;
 	}
 
-	private Element processMethod(String identifier, String thisSource) {
-		// It could have been already loaded
-		var e = this.information.getElements(identifier, null, null, true, false, "Method").findAny();
-		if (e.isPresent()) {
-			e.get().addSource(thisSource);
-			return e.get();
-		}
-		return new MethodObject(identifier, thisSource, false, this.information);
-	}
-
-	private Element processConstMethod(String identifier) {
-		// It could have been already loaded
-		var e = this.information.getElements(identifier, null, null, true, false, "ConstMethod").findAny();
-		if (e.isPresent()) {
-			return e.get();
-		}
-
-		BasicObject constMethod = new BasicObject(identifier);
+	private Element processConstMethod(String identifier, String address) {
+		BasicObject constMethod = (BasicObject) ElementFactory.getOrCreate(identifier, "ConstMethod", address);
 
 		//Which Method do we belong to?
-		var mop = this.information.getElements(identifier, null, null, true, false, "Method").findAny();
-		if (mop.isPresent()) {
-			((MethodObject) mop.get()).setConstMethod(constMethod);
-		} else {
-			MethodObject method = new MethodObject(identifier, "Referenced by ConstMethod in AOT Cache", true, this.information);
-			method.setConstMethod(constMethod);
-			this.information.addExternalElement(method, "Referenced by ConstMethod in AOT Cache");
-		}
+		MethodObject method = (MethodObject) ElementFactory.getOrCreate(identifier, "Method", null);
+		method.setConstMethod(constMethod);
 
 		return constMethod;
 	}

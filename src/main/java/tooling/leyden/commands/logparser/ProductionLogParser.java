@@ -1,7 +1,7 @@
 package tooling.leyden.commands.logparser;
 
-import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.Element;
+import tooling.leyden.aotcache.ElementFactory;
 import tooling.leyden.aotcache.Warning;
 import tooling.leyden.aotcache.WarningType;
 import tooling.leyden.commands.LoadFileCommand;
@@ -65,7 +65,7 @@ public class ProductionLogParser extends LogParser {
 					//WARNING: this should be covered by the aot map file
 					//we are assuming no aot map file was loaded at this point
 					//so we create a basic placeholder
-					e = new ClassObject(className);
+					e =  ElementFactory.getOrCreate(className, "Class", null);
 				} else {
 					e = classes.get();
 				}
@@ -77,8 +77,9 @@ public class ProductionLogParser extends LogParser {
 				information.addAOTCacheElement(e, getSource());
 
 			} else {
-				e = new ClassObject(className);
-				information.addExternalElement(e, getSource());
+				e = ElementFactory.getOrCreate(className, "Class", null);
+				e.addSource(getSource());
+				information.addExternalElement(e);
 				// else this wasn't loaded from the aot cache
 				if (className.contains("$$Lambda/")) {
 					this.information.getStatistics().incrementValue("[LOG] Lambda Methods not loaded from AOT Cache");

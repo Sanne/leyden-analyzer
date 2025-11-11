@@ -16,7 +16,7 @@ import java.util.random.RandomGenerator;
 		return key;
 	}
 
-	public BasicObject(String key) {
+	BasicObject(String key) {
 		this.key = key;
 	}
 }

@@ -9,7 +9,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Elements that can be found on the Information.
@@ -197,12 +199,17 @@ public abstract class Element {
 	}
 
 	@Override
+	public int hashCode() {
+		int result = Objects.hashCode(getType());
+		result = 31 * result + Objects.hashCode(getKey());
+		return result;
+	}
+
+	@Override
 	public final boolean equals(Object o) {
-		if (this == o)
-			return true;
 		if (!(o instanceof Element element))
 			return false;
 
-		return getType().equals(element.getType()) && getKey().equals(element.getKey());
+		return Objects.equals(getType(), element.getType()) && Objects.equals(getKey(), element.getKey());
 	}
 }

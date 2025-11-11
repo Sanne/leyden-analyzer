@@ -24,21 +24,17 @@ public class MethodObject extends ReferencingElement {
 	private String returnType;
 	private List<String> parameters = new ArrayList<>();
 
-	public MethodObject() {
-		this.setType("Method");
-	}
-
-	public MethodObject(String identifier, String thisSource, Boolean useNotCached, Information information) {
-		this.setType("Method");
+	MethodObject(String identifier) {
+		super(identifier, "Method");
 		String qualifiedName = identifier.substring(identifier.indexOf(" ") + 1);
 		if (qualifiedName.contains("(")) {
 			qualifiedName = qualifiedName.substring(0, qualifiedName.indexOf("("));
 		}
 		this.setName(qualifiedName.substring(qualifiedName.lastIndexOf(".") + 1));
 		String className = qualifiedName.substring(0, qualifiedName.lastIndexOf("."));
-		this.fillReturnClass(identifier, information);
-		this.fillClass(thisSource, className, information, useNotCached);
-		this.procesParameters(identifier, information);
+		this.fillReturnClass(identifier);
+		this.fillClass(className);
+		this.procesParameters(identifier);
 	}
 
 	public ClassObject getClassObject() {
@@ -205,7 +201,7 @@ public class MethodObject extends ReferencingElement {
 		return sb.toAttributedString();
 	}
 
-	private void procesParameters(final String identifier, final Information information) {
+	private void procesParameters(final String identifier) {
 		if (!identifier.contains("(") || !identifier.contains(")")) {
 			return;
 		}
@@ -215,14 +211,14 @@ public class MethodObject extends ReferencingElement {
 				.split(", ");
 		for (String parameter : parameters) {
 			if (!parameter.isBlank()) {
-				var classes = information.getElements(parameter, null, null, true, true, "Class").toList();
+				var classes = Information.getMyself().getElements(parameter, null, null, true, true, "Class").toList();
 				classes.forEach(this::addParameter);
 				if (classes.isEmpty()) {
 					this.addParameter(parameter);
 					//Maybe it was an array:
 					if (parameter.endsWith("[]")) {
 						parameter = parameter.substring(0, parameter.length() - 2);
-						information
+						Information.getMyself()
 								.getElements(parameter, null, null, true, true, "Class")
 								.forEachOrdered(this::addReference);
 					}
@@ -231,25 +227,15 @@ public class MethodObject extends ReferencingElement {
 		}
 	}
 
-	private void fillClass(String thisSource, String className, Information information, Boolean useNotCached) {
-		List<Element> objects = information.getElements(className, null, null, true, useNotCached, "Class").toList();
-		if (objects.isEmpty()) {
-			ClassObject classObject = new ClassObject(className);
-			classObject.addMethod(this);
-			information.addExternalElement(classObject, "Referenced from a Method element in " + thisSource);
-		} else {
-			Element element = objects.getFirst();
-			if (element instanceof ClassObject classObject) {
-				//Should always be a class object, but...
-				classObject.addMethod(this);
-			}
-		}
+	private void fillClass(String className) {
+		classObject = (ClassObject) ElementFactory.getOrCreate(className, "Class", null);
+		classObject.addMethod(this);
 	}
 
-	private void fillReturnClass(String identifier, Information information) {
+	private void fillReturnClass(String identifier) {
 		if (identifier.indexOf(" ") > 0) {
 			this.setReturnType(identifier.substring(0, identifier.indexOf(" ")));
-			information
+			Information.getMyself()
 					.getElements(this.getReturnType(), null, null, true, true, "Class")
 					.forEach(this::addReference);
 		}

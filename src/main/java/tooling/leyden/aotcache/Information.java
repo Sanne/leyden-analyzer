@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -79,12 +80,11 @@ public class Information {
 		}
 	}
 
-	public void addExternalElement(Element e, String source) {
+	public void addExternalElement(Element e) {
 		elementsNotInTheCache.put(new Key(e.getKey(), e.getType()), e);
 		if (e.getAddress() != null) {
 			elementsByAddress.putIfAbsent(e.getAddress(), e);
 		}
-		e.addSource(source);
 	}
 
 	public Map<Key, Element> getExternalElements() {
