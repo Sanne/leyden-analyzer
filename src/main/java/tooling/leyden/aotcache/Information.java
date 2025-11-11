@@ -41,6 +41,7 @@ public class Information {
 
 	//Singletonish
 	private static Information myself;
+
 	public static Information getMyself() {
 		return myself;
 	}
@@ -115,6 +116,7 @@ public class Information {
 		heapRootAddresses.clear();
 		heapRoot = null;
 	}
+
 	public boolean cacheContains(Element e) {
 		return getElements(e.getKey(), null, null, true, false, e.getType()).count() > 0;
 	}
@@ -124,7 +126,7 @@ public class Information {
 	}
 
 	public Stream<Element> getElements(String key, String[] packageName, String[] excludePackageName,
-									 Boolean includeArrays, Boolean includeExternalElements, String... type) {
+									   Boolean includeArrays, Boolean includeExternalElements, String... type) {
 
 		if (key != null && !key.isBlank() && type != null && type.length > 0) {
 			//This is trivial, don't search through all elements
@@ -159,10 +161,10 @@ public class Information {
 	}
 
 	public static Stream<Element> filterByParams(String[] packageName,
-																 String[] excludePackageName,
-																 Boolean addArrays,
-																 String[] type,
-																 Stream<Element> result) {
+												 String[] excludePackageName,
+												 Boolean addArrays,
+												 String[] type,
+												 Stream<Element> result) {
 		if (packageName != null && packageName.length > 0) {
 			result = result.filter(e -> {
 				if (e instanceof ClassObject classObject) {
@@ -177,9 +179,22 @@ public class Information {
 				}
 				if (e.getType().equals("Object")
 						|| e.getType().startsWith("ConstantPool")) {
-
 					return Arrays.stream(packageName)
 							.anyMatch(p -> e.getKey().startsWith(p));
+				}
+				if (e.getType().endsWith("TrainingData")
+						|| e.getType().equalsIgnoreCase("MethodData")
+						|| e.getType().equalsIgnoreCase("MethodCounters")) {
+					return Arrays.stream(packageName)
+							.anyMatch(p -> ((ReferencingElement) e).getReferences().stream()
+									.anyMatch(r -> {
+										if (r instanceof ClassObject classObject) {
+											return classObject.getPackageName().startsWith(p);
+										} else if (r instanceof MethodObject methodObject) {
+											return methodObject.getClassObject().getPackageName().startsWith(p);
+										}
+										return false;
+									}));
 				}
 				return false;
 			});
