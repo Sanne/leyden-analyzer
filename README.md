@@ -1,6 +1,6 @@
 # Java AOT Cache Diagnostics Tool
 
-This is an interactive console to help debug what is happening within and with the AOT Cache.
+This is an interactive console to help debug what is happening within and with the [AOT Cache](https://www.youtube.com/watch?v=fiBNDT9r_4I).
 
 This is a work-in-progress and there is no stable interface, commands change as we evolve and use it. Use the `help` command to guide you, don't trust this README blindly.
 
@@ -28,10 +28,11 @@ You might need to be patient because it uses [JitPack](https://jitpack.io) to bu
 There is a `help` command that is very self-explanatory. Please, use it. 
 
 You can jump to the **[Examples](#examples-of-usage)** if you are in a hurry to quickly answer common questions:
-* [Why is this class in my AOT cache?](#why-is-this-class-in-my-aot-cache)
+* [Why is this class in my AOT cache?](#why-is-a-class-in-my-aot-cache)
 * [Which classes do this class drag into the cache?](#which-classes-do-this-class-drag-into-the-cache)
-* [Why is this class NOT in my AOT cache?](#why-is-this-class-not-in-my-aot-cache)
-* [Why is this method not properly trained?](#why-is-this-method-not-properly-trained)
+* [Why is this class NOT in my AOT cache?](#why-is-a-class-not-in-my-aot-cache)
+* [Why is this method not properly trained?](#why-is-a-method-not-properly-trained)
+* [Is my application properly trained?](#is-my-application-properly-trained)
 
 But they don't contain all the possibilities this tool offers. 
 
@@ -238,12 +239,13 @@ describe -i=java.util.stream.Collectors -t=Class
 ```
 ```
 -----
-|  Class java.util.stream.Collectors on address 0x00000008008366e0 with size 528.
+|  Class java.util.stream.Collectors on address 0x00000008008b3b18 with size 528.
 |  This information comes from: 
-|    > Production log
 |    > AOT Map
+|    > Production log
+|    > Referenced from a KlassTrainingData.
 |  This class is included in the AOT cache.
-|  This class has 141 Methods, of which 6 have been run and 6 have been trained.
+|  This class has 132 Methods, of which 6 have been run and 5 have been trained.
 |  It has a KlassTrainingData associated to it.
 -----
 ```
@@ -255,32 +257,50 @@ describe -i=org.infinispan.server.loader.Loader -t=Class -v
 ```
 ```
 -----
-|  Class org.infinispan.server.loader.Loader on address 0x0000000800a595a0 with size 528.
-|  This information comes from:
-|    > Production log
+|  Class org.infinispan.server.loader.Loader on address 0x0000000800ad6070 with size 528.
+|  This information comes from: 
 |    > AOT Map
+|    > Production log
 |  This class is included in the AOT cache.
-|  This class has 5 Methods, of which 1 have been run and 1 have been trained.
-|  It has a KlassTrainingData associated to it.
+|  This class has 5 Methods, of which 0 have been run and 0 have been trained.
+|  This class doesn't seem to have training data. If you think this class and its methods should be part of the training, make sure your training run use them.
 |  There are no elements referenced from this element.
-|  Elements that refer to this element:
+|  Elements that refer to this element: 
 |    _____
-|    | [KlassTrainingData] org.infinispan.server.loader.Loader
 |    | [Untrained][Method] void org.infinispan.server.loader.Loader.main(java.lang.String[])
 |    | [Untrained][Method] void org.infinispan.server.loader.Loader.<init>()
 |    | [Untrained][Method] void org.infinispan.server.loader.Loader.run(java.lang.String[], java.util.Properties)
 |    | [Untrained][Method] java.lang.ClassLoader org.infinispan.server.loader.Loader.classLoaderFromPath(java.nio.file
 .Path, java.lang.ClassLoader)
-|    | [Trained][Method] java.lang.String org.infinispan.server.loader.Loader.extractArtifactName(java.lang.String)
+|    | [Untrained][Method] java.lang.String org.infinispan.server.loader.Loader.extractArtifactName(java.lang.String)
+|    | [Object] (0xffe1af68) java.lang.Class Lorg/infinispan/server/loader/Loader;
 |    | [Symbol] org/infinispan/server/loader/Loader
 |    _____
+|  
+|  Where does this element come from: 
+|    _____
+|    > Loaded from source: shared objects file
+|    _____
 -----
+```
 
+This command also shows if an element is part of the Heap root.
+
+```bash
+describe -i="(0xffd2d9b8) java.lang.ModuleLayer" 
+```
+```
+-----
+|  Object (0xffd2d9b8) java.lang.ModuleLayer on address 0x00000000ffd2d9b8 with size -1.This is a HEAP ROOT element.
+|  This information comes from: 
+|    > AOT Map
+|  This element refers to 7 other elements.
+-----
 ```
 
 #### Tree information
 
-The `tree` command shows related classes (although you can tweak the parameters to show more than classes). It can be used with the `describe` command to check details on elements inside the AOT Cache.
+The `tree` command shows related classes and objects (although you can tweak the parameters to show more than classes). It can be used with the `describe` command to check details on elements inside the AOT Cache.
 
 The basic tree command shows the graph dependency of what classes are used by the root class. This is useful to understand what classes does the root class trigger to be inside the cache. 
 
@@ -294,85 +314,113 @@ Showing which classes [Trained][Class] java.util.List uses.
 Calculating dependency graph... 
 + [Trained][Class] java.util.List
  \
-  + [Untrained][Class] java.util.stream.Nodes$LongFixedNodeBuilder
+  + [Trained][Class] java.util.Collections$UnmodifiableCollection
    \
-    + [Untrained][Class] jdk.internal.classfile.impl.AbstractInstruction$UnboundInstruction
+    + [Trained][Class] java.lang.invoke.VarHandleByteArrayAsShorts$ArrayHandle
      \
-      - [Untrained][Class] java.util.stream.Nodes$LongFixedNodeBuilder
+      - [Trained][Class] java.util.Collections$UnmodifiableCollection
       |
-      + [Untrained][Class] java.time.temporal.ValueRange
+      + [Untrained][Class] [Ljava.time.temporal.ChronoField;
+      |
+      + [Untrained][Class] java.security.PrivilegedExceptionAction
        \
-        - [Untrained][Class] java.util.stream.Nodes$LongFixedNodeBuilder
+        + [Trained][Class] java.lang.Object
+```
+To avoid infinite loops and circular references, each element will be iterated over on the tree only once. Elements that have already appeared on the tree will be colored blue, will be preceded by a `-` sign, and will not have children.
+
+Adding more types of assets help explain the traceability of why those classes are related.
+
+```bash
+tree -i=java.util.List  -max=7 -t=Class,Symbol,Object,Method
+```
+```
+Showing which classes [Trained][Class] java.util.List uses.
+Calculating dependency graph... 
++ [Trained][Class] java.util.List
+ \
+  + [Untrained][Method] java.lang.Object java.util.List.remove(int)
+   \
+    - [Trained][Class] java.util.List
+    |
+    + [Trained][Class] java.lang.Object
+     \
+      + [Trained][Method] java.lang.Class java.lang.Object.getClass()
+       \
+        - [Trained][Class] java.lang.Object
         |
-        - [Untrained][Class] jdk.internal.classfile.impl.AbstractInstruction$UnboundInstruction
+        + [Trained][Class] java.lang.Class
+      |
+      + [Symbol] Ljava/lang/Object;
+       \
+        - [Trained][Class] java.lang.Object
         |
-        + [Untrained][Class] sun.security.jca.ProviderConfig
-        |
-        + [Untrained][Class] java.time.ZoneId
+        + [Untrained][Class] Ljava.lang.Object;
+      |
+      + [Untrained][Method] void java.lang.Object.notify()
 ```
 
-There is also a `reverse` argument to show which classes use the root class. This is useful to understand why this class was loaded into the cache, as it shows who triggered its allocation in memory.
+There is also a `reverse` argument to show which classes use the root class. This is useful to understand why a class was loaded into the cache, as it shows who triggered its allocation in memory.
 
 By default, we will see both classes and objects:
 
 ```bash
-> tree -i=java.util.List  -max=8 --reverse --level=1
+tree -i=java.util.List  -max=8 --reverse --level=1
 ```
 ```
 Showing which classes are used by [Trained][Class] java.util.List.
 Calculating dependency graph... 
 + [Trained][Class] java.util.List
  \
-  + [Object] (0xffe47828) java.lang.Class Ljava/util/ResourceBundle$ResourceBundleControlProviderHolder;
+  + [Object] (0xffe456c0) java.lang.Class Ljdk/jfr/internal/jfc/JFC;
    \
-    + [Trained][Class] sun.reflect.annotation.AnnotationType
+    + [Object] (0xffe3ffc0) [Ljdk.internal.vm.FillerElement; length: 12
     |
-    + [Trained][Class] java.lang.reflect.Constructor
+    + [Trained][Class] java.util.Map
     |
-    + [Trained][Class] java.lang.ClassValue$ClassValueMap
+    + [Trained][Class] java.lang.Object
     |
     - [Trained][Class] java.util.List
     |
     + [Trained][Class] java.lang.ref.SoftReference
     |
-    + [Trained][Class] java.util.Map
+    + [Trained][Class] java.lang.ClassValue$ClassValueMap
     |
-    + [Untrained][Class] java.util.ResourceBundle$ResourceBundleControlProviderHolder
+    + [Trained][Class] java.lang.reflect.Constructor
     |
-    + [Object] (0xffe3ffc0) [Ljdk.internal.vm.FillerElement; length: 12
+    + [Trained][Class] sun.reflect.annotation.AnnotationType
 ```
 
 If you are not interested in seeing the Objects themselves, filter by type `Class`:
 ```bash
-> tree -i=java.util.List  -max=10 --reverse -t=Class
+tree -i=java.util.List  -max=10 --reverse -t=Class
 ```
 ```
 Showing which classes are used by [Trained][Class] java.util.List.
 Calculating dependency graph... 
 + [Trained][Class] java.util.List
  \
-  + [Trained][Class] java.util.ArrayList$SubList
+  + [Trained][Class] java.util.Collections$UnmodifiableCollection
    \
-    + [Trained][Class] java.util.ArrayList$SubList$1
-  |
-  + [Trained][Class] jdk.internal.classfile.impl.UnboundAttribute$UnboundExceptionsAttribute
-  |
-  + [Untrained][Class] org.apache.logging.log4j.core.impl.ThrowableFormatOptions
-  |
-  + [Untrained][Class] org.infinispan.distribution.ch.impl.ReplicatedConsistentHash
-   \
-    + [Untrained][Class] org.infinispan.distribution.ch.impl.ReplicatedConsistentHashFactory
-  |
-  + [Untrained][Class] org.infinispan.factories.CorePackageImpl$1
-  |
-  + [Untrained][Class] org.infinispan.counter.impl.factory.ClusteredCounterPackageImpl$1
-  |
-  + [Untrained][Class] org.infinispan.rest.configuration.CorsConfiguration
-  |
-  + [Untrained][Class] org.jgroups.util.Buffer
+    + [Untrained][Class] com.fasterxml.jackson.annotation.JsonFormat$Shape
+     \
+      + [Untrained][Class] com.fasterxml.jackson.annotation.JsonFormat$Value
+       \
+        + [Untrained][Class] com.fasterxml.jackson.databind.SerializerProvider
+        |
+        + [Untrained][Class] com.fasterxml.jackson.databind.introspect.AnnotationIntrospectorPair
+        |
+        + [Untrained][Class] com.fasterxml.jackson.databind.deser.std.StdDeserializer
+        |
+        + [Untrained][Class] com.fasterxml.jackson.databind.DatabindContext
+        |
+        + [Untrained][Class] com.fasterxml.jackson.databind.cfg.ConfigOverrides
+        |
+        + [Untrained][Class] com.fasterxml.jackson.databind.introspect.BasicBeanDescription
+        |
+        + [Untrained][Class] com.fasterxml.jackson.databind.introspect.ConcreteBeanPropertyBase
 ```
 
-To avoid infinite loops and circular references, each element will be iterated over on the tree only once. Elements that have already appeared on the tree will be colored blue and will not have children.
+Note that on all these examples we are using a limitation on the numbers of elements shown (`max` argument) and that the order of the tree is not warranteed.
 
 ### Cleanup
 
@@ -399,123 +447,161 @@ Just `exit`.
 
 The following section contains examples on how to use this tool to improve your training runs and get better performance thanks to the AOT Cache in Java.
 
-### Why is this class in my AOT cache? 
+### Why is a class stored in my AOT cache? 
 
 We start by loading an aot cache map file to the tool:
 
 ```bash
 load aotCache aot.map
 ```
-```
-Adding aot.map to our analysis...
-This is a big file. The size of this file is 395 MB. This may take a while.
-Consider using the `--background` option to load this file.
-File aot.map added in 10108ms.
-```
+
 And then we load a training log run to generate the dependency graph of classes.
 
 ```bash
 load trainingLog training.log
 ```
-```
-Adding training.log to our analysis...
-File training.log added in 2095ms.
-```
 
-Now we just simply run the `tree --reverse` command to see which classes use my root class. Note that this can be a very long graph, you can use `n`, `-epn`, `-max`, and `--level` arguments to filter them out.
+Now we just simply run the `tree` command to see which classes use my root class. 
+
+Remember that this command can generate a very long tree. You can use `n`, `-epn`, `-max`, and `--level` arguments to filter them out.
+
+If we wanted to know why the class `org.infinispan.configuration.cache.Configuration` is on stored on the AOT cache, we build a reverse tree on it:
+
 ```bash
-tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan --reverse
+tree -i=org.infinispan.configuration.cache.Configuration --reverse
 ```
 ```
+tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan --reverse 
+Showing which classes are used by [Untrained][Class] org.infinispan.configuration.cache.Configuration.
 Calculating dependency graph... 
 + [Untrained][Class] org.infinispan.configuration.cache.Configuration
  \
-  + [Untrained][Class] org.infinispan.eviction.impl.ActivationManagerImpl
-  |
-  + [Untrained][Class] org.infinispan.interceptors.impl.JmxStatsCommandInterceptor
+  + [Untrained][Class] org.infinispan.conflict.impl.DefaultConflictManager
    \
-    + [Untrained][Class] org.infinispan.interceptors.impl.CacheLoaderInterceptor
+    + [Untrained][Class] org.infinispan.conflict.impl.CorePackageImpl$1
+  |
+  + [Untrained][Class] org.infinispan.configuration.cache.IndexWriterConfigurationBuilder
+   \
+    + [Untrained][Class] org.infinispan.configuration.cache.AbstractIndexingConfigurationChildBuilder
      \
-      + [Untrained][Class] org.infinispan.interceptors.impl.PassivationCacheLoaderInterceptor
+      - [Untrained][Class] org.infinispan.configuration.cache.IndexWriterConfigurationBuilder
       |
-      + [Untrained][Class] org.infinispan.interceptors.impl.ClusteredCacheLoaderInterceptor
-    |
-    + [Untrained][Class] org.infinispan.interceptors.impl.CacheMgmtInterceptor
-     \
-      + [Untrained][Class] org.infinispan.factories.InternalCacheFactory$StatsCache
-      |
-      + [Untrained][Class] org.infinispan.eviction.impl.EvictionManagerImpl
-    |
-    + [Untrained][Class] org.infinispan.interceptors.impl.CacheWriterInterceptor
-     \
-      + [Untrained][Class] org.infinispan.interceptors.impl.DistCacheWriterInterceptor
-
+      + [Untrained][Class] org.infinispan.configuration.cache.IndexMergeConfigurationBuilder
 [...]
 ```
 
-### Which classes do this class drag into the cache?
+If we are only interested on the direct classes that make use of `org.infinispan.configuration.cache.Configuration`, we can use the argument `--level=0`
+
+```bash
+tree -i=org.infinispan.configuration.cache.Configuration --reverse --level=0
+```
+```
+Showing which classes are used by [Untrained][Class] org.infinispan.configuration.cache.Configuration.
+Calculating dependency graph... 
++ [Untrained][Class] org.infinispan.configuration.cache.Configuration
+ \
+  + [Untrained][Class] org.infinispan.configuration.cache.IndexWriterConfigurationBuilder
+  |
+  + [Untrained][Class] org.infinispan.factories.RecoveryManagerFactory
+  |
+  + [Untrained][Class] org.infinispan.configuration.cache.StoreConfigurationBuilder
+  |
+  + [Untrained][Class] org.infinispan.util.logging.Log_$logger
+  |
+```
+
+If we want to know more about why those classes use our class, we can add more asset types to the tree:
+
+```bash
+tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan --reverse --level=1 -max=5 -t=Method,Symbol,Class,Object
+```
+```
+Showing which classes are used by [Untrained][Class] org.infinispan.configuration.cache.Configuration.
+Calculating dependency graph... 
++ [Untrained][Class] org.infinispan.configuration.cache.Configuration
+ \
+  + [Untrained][Method] void org.infinispan.configuration.serializing.CoreConfigurationSerializer.writeEncoding(org.in
+finispan.commons.configuration.io.ConfigurationWriter, org.infinispan.configuration.cache.Configuration)
+   \
+    + [Untrained][Class] org.infinispan.configuration.serializing.CoreConfigurationSerializer
+  |
+  + [Untrained][Method] void org.infinispan.configuration.serializing.CoreConfigurationSerializer.writeQuery(org.infin
+ispan.commons.configuration.io.ConfigurationWriter, org.infinispan.configuration.cache.Configuration)
+```
+
+This means that, for example, the class `org.infinispan.configuration.serializing.CoreConfigurationSerializer` uses the class `org.infinispan.configuration.cache.Configuration`, which will mean that if `CoreConfigurationSerializer` class is loaded into the cache, it will have to drag `Configuration` to be stored into the cache too.
+
+That doesn't mean any of those classes or their methods are trained. This explains why the metadata of those classes are added into the cache.
+
+### Which classes do a class drag into the cache?
 
 We start by loading an aot cache map file to the tool:
 
 ```bash
 load aotCache aot.map
 ```
-```
-Adding aot.map to our analysis...
-This is a big file. The size of this file is 395 MB. This may take a while.
-Consider using the `--background` option to load this file.
-File aot.map added in 10108ms.
-```
 And then we load a training log run to generate the dependency graph of classes.
 
 ```bash
 load trainingLog training.log
 ```
-```
-Adding training.log to our analysis...
-File training.log added in 2095ms.
-```
 
-Now we just simply run the `tree` command to see which classes are used by my root class. Note that this can be a very long graph, you can use `n`, `-epn`, `-max`, and `--level` arguments to filter them out.
+Now we just simply run the `tree` command to see which classes are used by my root class. 
+
+Note that this can be a very long graph, you can use `n`, `-epn`, `-max`, and `--level` arguments to filter them out.
 
 ```bash
-tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan
+tree -i=org.infinispan.configuration.cache.Configuration -pn=org.infinispan --level=1 
 ```
 ```
-Calculating dependency graph...
+Showing which classes [Untrained][Class] org.infinispan.configuration.cache.Configuration uses.
+Calculating dependency graph... 
 + [Untrained][Class] org.infinispan.configuration.cache.Configuration
-  \
-    + [Untrained][Class] org.infinispan.configuration.cache.UnsafeConfiguration
-      \
-        + [Untrained][Class] org.infinispan.commons.configuration.attributes.ConfigurationElement
-          \
-            + [Untrained][Class] [Lorg.infinispan.commons.configuration.attributes.ConfigurationElement;
-              |
-            + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeSet
-              |
-        + [Untrained][Class] org.infinispan.commons.configuration.attributes.Attribute
-          \
-            + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeDefinition
-              \
-                + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeCopier
-                  |
-                + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeInitializer
-                  |
-                + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeMatcher
+ \
+  + [Untrained][Class] org.infinispan.configuration.cache.SecurityConfiguration
+   \
+    + [Untrained][Class] org.infinispan.commons.configuration.attributes.ConfigurationElement
+    |
+    + [Untrained][Class] org.infinispan.configuration.cache.AuthorizationConfiguration
+    |
+    + [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeSet
+  |
+  + [Untrained][Class] org.infinispan.configuration.cache.TracingConfiguration
+   \
+    - [Untrained][Class] org.infinispan.commons.configuration.attributes.ConfigurationElement
+    |
+    + [Untrained][Class] org.infinispan.telemetry.SpanCategory
+    |
+    - [Untrained][Class] org.infinispan.commons.configuration.attributes.AttributeSet
+  |
+  + [Untrained][Class] org.infinispan.commons.dataconversion.MediaType
+  |
+  + [Untrained][Class] org.infinispan.configuration.cache.TransactionConfiguration
+   \
+    + [Untrained][Class] org.infinispan.transaction.LockingMode
+    |
+    - [Untrained][Class] org.infinispan.commons.configuration.attributes.ConfigurationElement
+    |
+    + [Untrained][Class] org.infinispan.commons.tx.lookup.TransactionManagerLookup
 [...]
 ```
 
-### Why is this class NOT in my AOT cache?
+This means that, for example, the class `org.infinispan.configuration.cache.Configuration` uses the class `org.infinispan.configuration.cache.SecurityConfiguration`, which will mean that if `Configuration` class is loaded into the cache, it will have to drag `SecurityConfiguration` to be stored into the cache too.
 
-We load a production log run to add information on which classes were used during production and where they were loaded from. 
+That doesn't mean any of those classes or their methods are trained. This explains why the metadata of those classes are added into the cache.
+
+### Why is a class NOT in my AOT cache?
+
+[Storing metadata related to classes in the AOT cache reduces startup time](https://openjdk.org/jeps/483), so it is in your best interest to make sure all the classes used in your application are stored in the AOT cache.
+
+On this case, we know the metadata of a certain class is not added to the AOT cache when it should have been. Maybe we loaded an aot cache map previously and didn't find it there, even when the production run shows that those classes are being used.
+
+To find the root cause, we load a production log run to add information about which classes were used during production and where they were loaded from. 
 
 ```bash
 load productionLog production.log
 ```
-```
-Adding production.log to our analysis...
-File production.log added in 558ms.
-```
+
 We can now list and `describe` classes that are outside the AOT cache using the `--use` parameter.
 
 ```bash
@@ -539,6 +625,10 @@ ls -t=Class --use=notCached
 Found 1819 elements.
 ```
 
+If the class is not on this list, this means that the class was not even loaded during the production run. Which means it was never used during the production run. There is no fixing here, the problem is that you expect a class to be used when your application doesn't use it. If you think the class should have been loaded during production run, check your code and logs to understand why it was not used. Maybe some configuration issue?
+
+**If the class is on this list**, we can determine if it is part of the AOT cache by using the `describe` command.
+
 ```bash
 describe -i=org.infinispan.remoting.transport.jgroups.JGroupsRaftManager --use=both -v
 ```
@@ -553,16 +643,15 @@ describe -i=org.infinispan.remoting.transport.jgroups.JGroupsRaftManager --use=b
 |  There are no other elements of the cache that refer to this element.
 -----
 ```
+Note the phrase `This class is NOT included in the AOT cache.`. Which means: this class has been loaded during the production run, it was somehow used or close to be used in your app, but the training run didn't think it should be included in the AOT cache.
 
-There are multiple reasons why this happened and we can't cover all. But we can load the training run log and see if we can find any warning related to the class:
+There are multiple reasons why this happened and we can't cover all of them. But one thing we can do is to try to find some clue on the training run log.
 
 ```bash
 load trainingLog training.log
 ```
-```
-Adding training.log to our analysis...
-File log.training added in 8259ms.
-```
+
+We can try to find some warning related to our class:
 
 ```bash
 warning -i=org.infinispan.remoting.transport.jgroups.JGroupsRaftManager
@@ -577,6 +666,8 @@ unreg => org/infinispan/remoting/transport/jgroups/JGroupsRaftManager
 
 We find there three warnings associated to this element. Now we have something to investigate.
 
+If the previous command didn't show any related warning, we can also explore all the warnings trying to find another cause for the missing class.
+
 ### Why is this method not properly trained?
 
 We start by loading an aot cache map file to the tool:
@@ -584,18 +675,12 @@ We start by loading an aot cache map file to the tool:
 ```bash
 load aotCache aot.map
 ```
-```
-Adding aot.map to our analysis...
-This is a big file. The size of this file is 395 MB. This may take a while.
-Consider using the `--background` option to load this file.
-File aot.map added in 10108ms.
-```
 
-Note that as I haven't loaded any log file, we only work with information coming from the AOT cache, which is limited.
+Note that as I haven't loaded any log file, we only work with information coming from the AOT cache, which is limited. But it is enough for the purpose of this example.
 
-#### Asking the tool to find potential improvement areas
+I can ask for automatic checks on our playground to find potential improvement areas. This will try to detect automatically some weird behaviours that may or may not be a problem.
 
-Then I ask for automatic warning checks:
+Note that this may find thousands of warnings. Do not be afraid, it doesn't mean your training has thousands of errors. They are just potential areas to explore. No one expects you to explore all of them.
 
 ```bash 
 warning check
@@ -617,9 +702,7 @@ The auto-detected issues may or may not be problematic.
 It is up to the developer to decide that.
 ```
 
-So I take for example warning `007`: the `org.infinispan.xsite` package contains methods that were run but not trained. 
-
-#### Investigating the warning
+So I take for example warning `007`: the `org.infinispan.xsite` package contains methods that were run but not trained.
 
 Now I can list all methods in that package that were run.
 
@@ -656,9 +739,7 @@ And I found five elements. I can take any of them and see what is happening to i
 
 So I discover there is no CompileTrainingData associated to it. 
 
-This may mean that this method was not executed enough times during the training run to be worth recompiled and have CompileTrainingData associated to it. Or it may be that the associated data was rejected for some reason. But now I have something to investigate further.
-
-#### Looking for extra information
+This may mean that this method was not executed enough times during the training run to be worth recompiled and have CompileTrainingData associated to it. Or it may be that the associated data was rejected for some reason. But now I have something to investigate further (see [Is my application properly trained?](#is-my-application-properly-trained)) .
 
 I can also check what is happening on the main class for that method:
 
@@ -667,11 +748,118 @@ I can also check what is happening on the main class for that method:
  ```
 ```
 -----
-|  Class org.infinispan.xsite.NoOpBackupSender on address 0x00000008017114c0 with size 624.
+|  Class org.infinispan.xsite.NoOpBackupSender on address 0x000000080172b2e8 with size 624.
 |  This information comes from: 
 |    > AOT Map
 |  This class is included in the AOT cache.
-|  This class has 9 Methods, of which 1 have been run and 1 have been trained.
-|  This class doesn't seem to have training data. 
+|  This class has 9 Methods, of which 0 have been run and 0 have been trained.
+|  This class doesn't seem to have training data. If you think this class and its methods should be part of the training, make sure your training run use them.
 -----
 ```
+
+### Is my application properly trained?
+
+This is a nuanced question. "Properly trained" is very dependent on the context and the application you are trying to train. But we can explore what methods are compiled, at what level, and if there are methods that should be trained but are not.
+
+**Note that Project Leyden is a work-in-progress and there may be missing assets just because the implementation to get those assets into the cache is not yet on mainstream.**
+
+[A good training will improve warmup time and will help the JIT compiler to generate native code quicker.](https://openjdk.org/jeps/515) So, whatever your definition of properly trained, you should try to aim for a well-trained cache.
+
+The basic command to run here is just an `ls` to list classes and methods that have been `--run` or are `--trained`. If you are looking at specific packages, you should filter by `--packageName`(`-pn`) because this list can be quite long.
+
+First we can make sure that all methods that we know that should be run have been run:
+
+```bash
+ls --run -pn=org.infinispan.configuration.parsing
+```
+```
+[Trained][Method] java.lang.String org.infinispan.configuration.parsing.Element.toString()
+[Trained][Method] java.lang.String org.infinispan.configuration.parsing.Attribute.getLocalName()
+[Trained][Method] java.lang.String org.infinispan.configuration.parsing.Element.getLocalName()
+[Trained][Method] java.lang.String org.infinispan.configuration.parsing.Attribute.toString()
+[Trained][Method] int org.infinispan.configuration.parsing.ParserRegistry$QName.hashCode()
+[Trained][Method] void org.infinispan.configuration.parsing.ParserRegistry$QName.<init>(java.lang.String, java.lang.St
+ring)
+[Trained][Method] void org.infinispan.configuration.parsing.ParserRegistry$NamespaceParserPair.<init>(org.infinispan.c
+onfiguration.parsing.Namespace, org.infinispan.configuration.parsing.ConfigurationParser)
+Found 7 elements.
+```
+
+The very first step is to make sure that all the methods that your app will run are listed here. If there are methods that are not listed here but your app uses on startup, or regularly, it means your training was not good enough and didn't run those methods. Modify your training to make sure you use your app on a way that is as closer to a production run as possible.
+
+Notice the `[Trained]` string that already gives us an indicator that those methods have not only been run, but also have training data available.
+
+It could be that some methods were run but not trained:
+
+```bash
+ls --run -pn=jdk.internal.loader 
+```
+```
+[Trained][Method] long jdk.internal.loader.NativeLibraries$NativeLibraryImpl.find(java.lang.String)
+[Untrained][Method] long jdk.internal.loader.NativeLibraries.find(java.lang.String)
+[Untrained][Method] long jdk.internal.loader.NativeLibrary.findEntry0(long, java.lang.String)
+[Trained][Method] void jdk.internal.loader.AbstractClassLoaderValue$Memoizer.<init>(java.lang.ClassLoader, jdk.interna
+l.loader.AbstractClassLoaderValue, java.util.function.BiFunction)
+[...]
+```
+
+If some method was used by your app (was run) but is run only once or twice, it is normal to not have trained profile data associated to it.
+
+Methods that are used only on training runs but not on production runs (like some framework to run the training run) will also appear as run and, potentially, as trained. This is garbage data that will not be useful for your production run and should be avoided as possible, but there's no manual removal of data from the cache (yet?).
+
+Not only we can list which methods have been run, we can check the classes and methods that are trained. This means: there is profile information about them on the AOT cache:
+
+```bash
+ls --trained -pn=org.infinispan.commons.util
+```
+```
+[Trained][Method] java.util.concurrent.CompletableFuture org.infinispan.commons.util.concurrent.CompletableFutures.com
+pletedNull()
+[Trained][Method] java.util.Map$Entry org.infinispan.commons.util.ArrayMap$EntrySet.lambda$iterator$0(int)
+[Trained][Method] void org.infinispan.commons.util.AbstractDelegatingConcurrentMap.<init>()
+[Trained][Method] long org.infinispan.commons.util.TimeQuantity.longValue()
+[Trained][Method] java.lang.reflect.Method org.infinispan.commons.util.Util.getFactoryMethod(java.lang.Class)
+[Trained][Method] java.util.Collection org.infinispan.commons.util.AbstractDelegatingMap.values()
+[Trained][Method] java.lang.Object org.infinispan.commons.util.ImmutableListCopy.get(int)
+```
+
+If you are on JDK25 and don't see your classes marked as trained, don't worry, that's a feature that is not yet on mainstream. There are OpenJDK classes trained, and you can play with them to understand what this means:
+
+```bash
+ls --trained -pn=jdk.internal.loader
+```
+```
+[Trained][Class] jdk.internal.loader.ClassLoaderValue
+[Trained][Class] jdk.internal.loader.ClassLoaders
+[Trained][Method] jdk.internal.loader.BuiltinClassLoader$LoadedModule jdk.internal.loader.BuiltinClassLoader.findLoade
+dModule(java.lang.String)
+[...]
+```
+
+To get more information on what training does a method have, you can use the `describe` command:
+
+```bash
+describe -i="long org.infinispan.commons.util.TimeQuantity.longValue()" -t=Method
+```
+```
+-----
+|  Method long org.infinispan.commons.util.TimeQuantity.longValue() on address 0x0000000800fa54f0 with size 88.
+|  This information comes from: 
+|    > AOT Map
+|  This element refers to 1 other elements.
+|  Belongs to the class org.infinispan.commons.util.TimeQuantity
+|  It has a MethodCounters associated to it, which means it was called at least once during training run.
+|  It has CompileTrainingData associated to it on level: 1
+|  It has a MethodTrainingData associated to it.
+-----
+```
+
+The training information we can find here relates to the [code generated by the JVM and the codecache](https://docs.oracle.com/en/database/oracle/oracle-database/26/jjdev/Oracle-JVM-JIT.html). 
+
+`It has a MethodCounters associated to it, which means it was called at least once during training run.` MethodCounters contains information like how many times a method has been called. If the method has one associated to it, it means it was run at least once during the training run.
+
+`It has a MethodTrainingData associated to it.` or `It has a MethodData associated to it.` MethodTrainingData and MethodData are auxiliary elements that contain profiling statistic information detailing how the method was executed. For example, which branches were more probable to be reached. This information is useful when compiling, as it can reorder and rearrange parts of the code to make it more efficient based on those statistics.
+
+`It has CompileTrainingData associated to it on level: 1` To learn more about what tiered compilation is, and what it means for your app, you can look [here](https://docs.oracle.com/en/java/javase/25/vm/java-hotspot-virtual-machine-performance-enhancements.html#GUID-85BA7DE7-4AF9-47D9-BFCF-379230C66412). TL;DR: The higher the number here, the more optimized the code is (range from 1 to 4).
+
+This tool does not allow you to read the profiling training information on methods, as that information is not easily reachable. But the fact that your method has (or hasn't) these elements should give you an indication of the type of information that it stores and how good the training is for that method.
