@@ -290,42 +290,86 @@ The basic tree command shows the graph dependency of what classes are used by th
 tree -i=java.util.List  -max=5
 ```
 ```
+Showing which classes [Trained][Class] java.util.List uses.
 Calculating dependency graph... 
 + [Trained][Class] java.util.List
  \
-  + [Untrained][Class] java.util.RandomAccess
-  |
-  + [Trained][Class] java.util.AbstractList$RandomAccessSpliterator
+  + [Untrained][Class] java.util.stream.Nodes$LongFixedNodeBuilder
    \
-    + [Trained][Class] java.lang.Object
+    + [Untrained][Class] jdk.internal.classfile.impl.AbstractInstruction$UnboundInstruction
      \
-      + [Object] (0xffe820c0) java.lang.Object
-       \
-        - [Trained][Class] java.lang.Object
+      - [Untrained][Class] java.util.stream.Nodes$LongFixedNodeBuilder
       |
-      + [Object] (0xffe820e0) java.lang.Object
+      + [Untrained][Class] java.time.temporal.ValueRange
+       \
+        - [Untrained][Class] java.util.stream.Nodes$LongFixedNodeBuilder
+        |
+        - [Untrained][Class] jdk.internal.classfile.impl.AbstractInstruction$UnboundInstruction
+        |
+        + [Untrained][Class] sun.security.jca.ProviderConfig
+        |
+        + [Untrained][Class] java.time.ZoneId
 ```
 
 There is also a `reverse` argument to show which classes use the root class. This is useful to understand why this class was loaded into the cache, as it shows who triggered its allocation in memory.
 
+By default, we will see both classes and objects:
+
 ```bash
-tree -i=java.util.List  -max=5 --reverse
+> tree -i=java.util.List  -max=8 --reverse --level=1
 ```
 ```
+Showing which classes are used by [Trained][Class] java.util.List.
 Calculating dependency graph... 
 + [Trained][Class] java.util.List
  \
-  + [Untrained][Class] io.netty.buffer.PooledByteBufAllocator
+  + [Object] (0xffe47828) java.lang.Class Ljava/util/ResourceBundle$ResourceBundleControlProviderHolder;
    \
-    + [Untrained][Class] io.netty.buffer.PoolArena
-     \
-      + [Untrained][Class] io.netty.buffer.PoolChunkList
-       \
-        - [Untrained][Class] io.netty.buffer.PoolArena
-      |
-      + [Untrained][Class] io.netty.buffer.PoolArena$DirectArena
-      |
-      + [Untrained][Class] io.netty.buffer.PoolArena$HeapArena
+    + [Trained][Class] sun.reflect.annotation.AnnotationType
+    |
+    + [Trained][Class] java.lang.reflect.Constructor
+    |
+    + [Trained][Class] java.lang.ClassValue$ClassValueMap
+    |
+    - [Trained][Class] java.util.List
+    |
+    + [Trained][Class] java.lang.ref.SoftReference
+    |
+    + [Trained][Class] java.util.Map
+    |
+    + [Untrained][Class] java.util.ResourceBundle$ResourceBundleControlProviderHolder
+    |
+    + [Object] (0xffe3ffc0) [Ljdk.internal.vm.FillerElement; length: 12
+```
+
+If you are not interested in seeing the Objects themselves, filter by type `Class`:
+```bash
+> tree -i=java.util.List  -max=10 --reverse -t=Class
+```
+```
+Showing which classes are used by [Trained][Class] java.util.List.
+Calculating dependency graph... 
++ [Trained][Class] java.util.List
+ \
+  + [Trained][Class] java.util.ArrayList$SubList
+   \
+    + [Trained][Class] java.util.ArrayList$SubList$1
+  |
+  + [Trained][Class] jdk.internal.classfile.impl.UnboundAttribute$UnboundExceptionsAttribute
+  |
+  + [Untrained][Class] org.apache.logging.log4j.core.impl.ThrowableFormatOptions
+  |
+  + [Untrained][Class] org.infinispan.distribution.ch.impl.ReplicatedConsistentHash
+   \
+    + [Untrained][Class] org.infinispan.distribution.ch.impl.ReplicatedConsistentHashFactory
+  |
+  + [Untrained][Class] org.infinispan.factories.CorePackageImpl$1
+  |
+  + [Untrained][Class] org.infinispan.counter.impl.factory.ClusteredCounterPackageImpl$1
+  |
+  + [Untrained][Class] org.infinispan.rest.configuration.CorsConfiguration
+  |
+  + [Untrained][Class] org.jgroups.util.Buffer
 ```
 
 To avoid infinite loops and circular references, each element will be iterated over on the tree only once. Elements that have already appeared on the tree will be colored blue and will not have children.
