@@ -4,14 +4,25 @@ This is an interactive console to help debug what is happening within and with t
 
 This is a work-in-progress and there is no stable interface, commands change as we evolve and use it. Use the `help` command to guide you, don't trust this README blindly.
 
+To be able to run this analyzer, you need to:
+1. Train your app to generate an AOT cache and log using the arguments `-XX:AOTCacheOutput=${FOLDER}/app.aot -Xlog:aot+map=trace,aot+map+oops=trace:file=${FOLDER}/aot.map:none:filesize=0 -Xlog:aot+resolve*=trace,aot+codecache+exit=debug:file=${FOLDER}/training.log:level,tags`
+1. Run your app to generate a production log using the arguments `-XX:AOTCache=${FOLDER}/app.aot -Xlog:class+load=info,aot+codecache=debug:file=${FOLDER}/production.log:level,tags`
+2. Use the previously generated files in `${FOLDER}` on this application as described below
+
 ## Running the application
+
+### Pre-packaged files
 
 You can find some already-packaged jar files on the [releases page](https://github.com/Delawen/leyden-analyzer/releases) that you can download and execute with a simple 
 ```bash
 java -jar leyden-analyzer-*-runner.jar
 ```
 
+### Building and Running
+
 Or if you clone this source code, just `mvn package` and then `java -jar target/quarkus-app/quarkus-run.jar` to run it.
+
+### Using JBang
 
 Or if you have [JBang](https://jbang.dev) installed, just run:
 
@@ -810,28 +821,39 @@ Methods sometimes get called during training runs that are never going to be cal
 Not only we can list which methods have been run, we can check the classes and methods that are trained. This means: there is profile information about them on the AOT cache:
 
 ```bash
-ls --trained -pn=org.infinispan.commons.util
+ls --trained -pn=io.quarkus.bootstrap
 ```
 ```
-[Trained][Method] java.util.concurrent.CompletableFuture org.infinispan.commons.util.concurrent.CompletableFutures.com
-pletedNull()
-[Trained][Method] java.util.Map$Entry org.infinispan.commons.util.ArrayMap$EntrySet.lambda$iterator$0(int)
-[Trained][Method] void org.infinispan.commons.util.AbstractDelegatingConcurrentMap.<init>()
-[Trained][Method] long org.infinispan.commons.util.TimeQuantity.longValue()
-[Trained][Method] java.lang.reflect.Method org.infinispan.commons.util.Util.getFactoryMethod(java.lang.Class)
-[Trained][Method] java.util.Collection org.infinispan.commons.util.AbstractDelegatingMap.values()
-[Trained][Method] java.lang.Object org.infinispan.commons.util.ImmutableListCopy.get(int)
+[Trained][Method] java.lang.Class io.quarkus.bootstrap.runner.RunnerClassLoader.loadClass(java.lang.String, boolean)
+[Trained][Method] void io.quarkus.bootstrap.runner.JarResource.close()
+[Trained][Method] void io.quarkus.bootstrap.runner.JarResource.resetInternalCaches()
+[Trained][Class] io.quarkus.bootstrap.runner.JarResource$JarResourceDataProvider
+[Trained][Method] int io.quarkus.bootstrap.runner.JarResource.hashCode()
+[Trained][Class] io.quarkus.bootstrap.runner.JarResource$JarResourceURLProvider
+[Trained][Method] void io.quarkus.bootstrap.runner.JarFileReference.<init>(java.util.jar.JarFile, java.util.concurrent
+.CompletableFuture)
+[Trained][Class] io.quarkus.bootstrap.graal.ImageInfo
+[Trained][Method] void io.quarkus.bootstrap.runner.JarFileReference.closeJarResources(io.quarkus.bootstrap.runner.JarR
+esource)
+[Trained][Class] io.quarkus.bootstrap.runner.JarResource$JarUrlStreamHandler
+[Trained][Class] io.quarkus.bootstrap.runner.ManifestInfo
+[...]
 ```
+You may fail to find any training data for your application classes. That can happen if your training run does not exercise very much application code or if the application code that it did exercise is loaded by a custom, application class loader.
 
 ```bash
-ls --trained -pn=jdk.internal.loader
+describe -i=io.quarkus.bootstrap.runner.JarResource -t=Class
 ```
 ```
-[Trained][Class] jdk.internal.loader.ClassLoaderValue
-[Trained][Class] jdk.internal.loader.ClassLoaders
-[Trained][Method] jdk.internal.loader.BuiltinClassLoader$LoadedModule jdk.internal.loader.BuiltinClassLoader.findLoade
-dModule(java.lang.String)
-[...]
+-----
+|  Class io.quarkus.bootstrap.runner.JarResource on address 0x0000000800be88d0 with size 664.
+|  This information comes from: 
+|    > AOT Map
+|    > Referenced from a KlassTrainingData.
+|  This class is included in the AOT cache.
+|  This class has 11 Methods, of which 8 have been run and 8 have been trained.
+|  It has a KlassTrainingData associated to it.
+-----
 ```
 
 To get more information on what training does a method have, you can use the `describe` command:
