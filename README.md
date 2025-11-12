@@ -805,7 +805,7 @@ l.loader.AbstractClassLoaderValue, java.util.function.BiFunction)
 
 If some method was used by your app (was run) but is run only once or twice, it is normal to not have trained profile data associated to it.
 
-Methods that are used only on training runs but not on production runs (like some framework to run the training run) will also appear as run and, potentially, as trained. This is garbage data that will not be useful for your production run and should be avoided as possible, but there's no manual removal of data from the cache (yet?).
+Methods sometimes get called during training runs that are never going to be called in production runs -- for example, framework code that might be used to set up or terminate the training run. These methods will be presented as having been run and, potentially, as trained.  Changing the training plan might let us remove unnecessary methods and training information from the AOT cache. Unfortunately, there is no manual removal of data from the cache.
 
 Not only we can list which methods have been run, we can check the classes and methods that are trained. This means: there is profile information about them on the AOT cache:
 
@@ -822,8 +822,6 @@ pletedNull()
 [Trained][Method] java.util.Collection org.infinispan.commons.util.AbstractDelegatingMap.values()
 [Trained][Method] java.lang.Object org.infinispan.commons.util.ImmutableListCopy.get(int)
 ```
-
-If you are on JDK25 and don't see your classes marked as trained, don't worry, that's a feature that is not yet on mainstream. There are OpenJDK classes trained, and you can play with them to understand what this means:
 
 ```bash
 ls --trained -pn=jdk.internal.loader
