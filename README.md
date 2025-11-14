@@ -5,7 +5,7 @@ This is an interactive console to help debug what is happening within and with t
 This is a work-in-progress and there is no stable interface, commands change as we evolve and use it. Use the `help` command to guide you, don't trust this README blindly.
 
 To be able to run this analyzer, you need to:
-1. Train your app to generate an AOT cache and log using the arguments `-XX:AOTCacheOutput=${FOLDER}/app.aot -Xlog:aot+map=trace,aot+map+oops=trace:file=${FOLDER}/aot.map:none:filesize=0 -Xlog:aot+resolve*=trace,aot+codecache+exit=debug:file=${FOLDER}/training.log:level,tags`
+1. Train your app to generate an AOT cache and log using the arguments `-XX:AOTCacheOutput=${FOLDER}/app.aot -Xlog:aot+map=trace,aot+map+oops=trace,aot=warning:file=${FOLDER}/aot.map:none:filesize=0 -Xlog:aot+resolve*=trace,aot+codecache+exit=debug:file=${FOLDER}/training.log:level,tags`
 1. Run your app to generate a production log using the arguments `-XX:AOTCache=${FOLDER}/app.aot -Xlog:class+load=info,aot+codecache=debug:file=${FOLDER}/production.log:level,tags`
 2. Use the previously generated files in `${FOLDER}` on this application as described below
 
@@ -125,31 +125,25 @@ info
 ```
 RUN SUMMARY: 
 Classes loaded: 
-  -> Cached:8.802 (82,87 %)
-  -> Not Cached:1.819 (17,13 %)
+  -> Cached:12.362 (98,18 %)
+  -> Not Cached:229 (1,82 %)
 Lambda Methods loaded: 
-  -> Cached:197 (11,28 %)
-  -> Not Cached:1.550 (88,72 %)
-  -> Portion of methods that are lambda: 1.747 (1,44 %)
-Code Entries: 493
-  -> Adapters: 493 (100,00 %)
-  -> Shared Blobs: 0 (0,00 %)
-  -> C1 Blobs: 0 (0,00 %)
-  -> C2 Blobs: 0 (0,00 %)
-AOT code cache size: 598432 bytes
+  -> Cached:765 (94,80 %)
+  -> Not Cached:42 (5,20 %)
+  -> Portion of methods that are lambda: 807 (0,51 %)
 AOT CACHE SUMMARY: 
-Classes in AOT Cache: 8.802
-  -> KlassTrainingData: 1.015 (11,53 %)
-Objects in AOT Cache: 50.718
-Methods in AOT Cache: 121.392
-  -> MethodCounters: 7.014 (5,78 %)
-  -> MethodData: 4.566 (3,76 %)
-  -> MethodTrainingData: 5.189 (4,27 %)
+Classes in AOT Cache: 12.362
+  -> KlassTrainingData: 2.661 (21,53 %)
+Objects in AOT Cache: 148.681
+Methods in AOT Cache: 157.361
+  -> MethodCounters: 10.847 (6,89 %)
+  -> MethodData: 7.108 (4,52 %)
+  -> MethodTrainingData: 8.660 (5,50 %)
   -> CompileTrainingData: 
-      -> Level 1: 510 (0,42 %)
-      -> Level 3: 3.121 (2,57 %)
-      -> Level 4: 671 (0,55 %)
-
+      -> Level 1: 1.118 (0,71 %)
+      -> Level 2: 53 (0,03 %)
+      -> Level 3: 5.163 (3,28 %)
+      -> Level 4: 2.125 (1,35 %)
 ```
 
 ### Listing assets
@@ -678,6 +672,8 @@ unreg => org/infinispan/remoting/transport/jgroups/JGroupsRaftManager
 We find there three warnings associated to this element. Now we have something to investigate.
 
 If the previous command didn't show any related warning, we can also explore all the warnings trying to find another cause for the missing class.
+
+Note that if some class is excluded from the cache, that means all classes depending on it will also be excluded, as we only store on the cache complete dependency graphs. This means that looking for related classes (classes used by your excluded class, parent classes, interfaces,...) may give you a hint on why your class got excluded.
 
 ### Why is a method not properly trained?
 
