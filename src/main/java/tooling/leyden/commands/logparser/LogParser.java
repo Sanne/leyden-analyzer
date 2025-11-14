@@ -1,15 +1,17 @@
 package tooling.leyden.commands.logparser;
 
-import tooling.leyden.aotcache.Information;
 import tooling.leyden.commands.LoadFileCommand;
 
 import java.util.Arrays;
-import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * This class is capable of parsing (certain) Java logs.
  */
 public abstract class LogParser extends Parser {
+	Pattern linePattern =
+			Pattern.compile("(?<timestamp>\\[(?:\\d|,)+s\\])?\\[(?<level>\\w+)\\s*\\]\\[(?<tags>(?:\\w+,?\\s*)+)\\](?<message>.*)");
 
 	public LogParser(LoadFileCommand loadFile) {
 		super(loadFile);
@@ -22,25 +24,21 @@ public abstract class LogParser extends Parser {
 
 	abstract void processLine(Line line);
 
-	private Line extractLineInformation(String content) {
+	Line extractLineInformation(String content) {
 		String[] tags = new String[]{};
+		String level = "unknown";
+		String message = "";
 
-		String level = null;
-		if (content.indexOf("[") >= 0 && content.indexOf("]") > 0) {
-			level = content.substring(content.indexOf("[") + 1, content.indexOf("]")).trim();
-			content = content.substring(content.indexOf("]") + 1);
-		}
-
-		if (content.indexOf("[") >= 0 && content.indexOf("]") > 0) {
-			tags = content.substring(content.indexOf("[") + 1, content.indexOf("]"))
+		Matcher m = linePattern.matcher(content);
+		if (m.matches()) {
+			level = m.group("level");
+			message = m.group("message");
+			tags = m.group("tags")
 					.trim()
 					.split("\\s*,\\s*");
 		}
 
-		final String message = content.substring(content.indexOf("]") + 1);
-
-		final var trimmedMessage = message.trim();
-		return new Line(content, tags, level, message, trimmedMessage);
+		return new Line(content, tags, level, message, message.trim());
 	}
 
 	protected boolean containsTags(String[] tags, String... wantedTags) {

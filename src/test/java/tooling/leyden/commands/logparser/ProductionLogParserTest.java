@@ -9,6 +9,8 @@ import tooling.leyden.aotcache.WarningType;
 import tooling.leyden.commands.DefaultTest;
 import tooling.leyden.commands.LoadFileCommand;
 
+import java.util.Arrays;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -25,6 +27,24 @@ class ProductionLogParserTest extends DefaultTest {
 		final var loadFile = new LoadFileCommand();
 		loadFile.setParent(getDefaultCommand());
 		parser = new ProductionLogParser(loadFile);
+	}
+
+	@Test
+	void acceptGenericLine() {
+		var line = parser.extractLineInformation("[info ][class,load         ] java.lang.Object source: shared objects file");
+
+		assertEquals("info", line.level());
+		assertEquals("java.lang.Object source: shared objects file", line.trimmedMessage());
+		assertTrue(Arrays.stream(line.tags()).anyMatch(t -> t.equalsIgnoreCase("class")));
+		assertTrue(Arrays.stream(line.tags()).anyMatch(t -> t.equalsIgnoreCase("load")));
+		assertEquals(2, line.tags().length);
+
+		line = parser.extractLineInformation("[32,382s][warning][aot] Skipping org/hibernate/type/format/jakartajson/JsonBJsonFormatMapper: Failed verification");
+
+		assertEquals("warning", line.level());
+		assertEquals("Skipping org/hibernate/type/format/jakartajson/JsonBJsonFormatMapper: Failed verification", line.trimmedMessage());
+		assertTrue(Arrays.stream(line.tags()).anyMatch(t -> t.equalsIgnoreCase("aot")));
+		assertEquals(1, line.tags().length);
 	}
 
 	@Test
