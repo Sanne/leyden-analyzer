@@ -70,6 +70,8 @@ public class TrainingLogParser extends LogParser {
 					new Warning(
 							List.of(parentSymbol, assignClassToSymbol(findSymbol(splitMessage[3]), true)),
 							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedKlass));
+			findOrCreateSymbolAndLinkToParent(parentSymbol,
+					"Used by " + parentSymbol.getKey() + ".", splitMessage[3]);
 		} else if (trimmedMessage.startsWith("reverted field")) {
 // reverted field  CP entry [ 45]: io/netty/channel/AbstractChannelHandlerContext => io/netty/channel/DefaultChannelPipeline.head:Lio/netty/channel/DefaultChannelPipeline$HeadContext;
 
@@ -94,6 +96,10 @@ public class TrainingLogParser extends LogParser {
 									assignClassToSymbol(findSymbol(names[0].substring(names[0].lastIndexOf(".") + 1)), true),
 									assignClassToSymbol(findSymbol(names[1]), true)),
 							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedMethod));
+			final String source = "Used by a field in " + names[0] + ".";
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1]);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")));
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1));
 		} else if (trimmedMessage.startsWith("reverted indy ")) {
 // reverted indy   CP entry [294]: jdk/jfr/internal/dcmd/DCmdDump (0) => java/lang/invoke/LambdaMetafactory.metafactory:
 // (Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;
@@ -105,6 +111,10 @@ public class TrainingLogParser extends LogParser {
 									assignClassToSymbol(findSymbol(names[0].substring(names[0].lastIndexOf(".") + 1)), true),
 									assignClassToSymbol(findSymbol(names[1]), true)),
 							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedIndy));
+			final String source = "Used by indy " + splitMessage[0] + ".";
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")));
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1));
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1]);
 		}
 	}
 
