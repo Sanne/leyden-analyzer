@@ -49,6 +49,7 @@ public class AOTMapParser extends Parser {
 	// -   6: 0x00000000ffe5c760 (0xffe5c760) java.lang.Integer
 	private final Pattern array = Pattern.compile(" -\\s*\\d+: " + regexpAddress + " .+");
 
+	//At some point, instead of root, it is roots.ddddddd
 	// [heap               0x00000000ffd00000 - 0x00000000fff30528   2295080 bytes]
 	//0x00000000ffd00000: @@ Object (0xffd00000) [Ljava.lang.Object; length: 5391
 	// - klass: 'java/lang/Object'[] 0x00000008007eee30
@@ -62,7 +63,7 @@ public class AOTMapParser extends Parser {
 	// root[1974]: 0x00000000ffdf5c78 (0xffdf5c78) java.lang.Class Ljava/lang/reflect/GenericDeclaration;
 	// root[2192]: 0x00000000ffdf1368 (0xffdf1368) java.lang.Class Ljava/lang/invoke/BoundMethodHandle; (aot-inited)
 	// root[2193]: 0x00000000ffdef7d8 (0xffdef7d8) java.lang.Class Ljava/lang/invoke/LambdaForm$Kind; (aot-inited)
-	private final Pattern heapRoot = Pattern.compile(" root\\[\\s*\\d+\\]: " + regexpAddress + " \\(0.*\\) (.+)");
+	private final Pattern heapRoot = Pattern.compile(" root(s)?\\[\\s*\\d+\\]: " + regexpAddress + " \\(0.*\\) (.+)");
 
 
 	// - resolved_references: 0x00000000ffd5dd18 (0xffd5dd18) [Ljava.lang.Object; length: 2
