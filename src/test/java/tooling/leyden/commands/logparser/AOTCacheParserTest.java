@@ -534,7 +534,7 @@ class AOTCacheParserTest extends DefaultTest {
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffd07518")));
 		assertTrue(((ReferencingElement)e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008007f4290")));
-		assertEquals(4, ((ReferencingElement)e).getReferences().size());
+		assertEquals(5, ((ReferencingElement)e).getReferences().size());
 
 		e = information.getByAddress("0x00000000ffd07500");
 		assertEquals("Object", e.getType());
@@ -570,7 +570,7 @@ class AOTCacheParserTest extends DefaultTest {
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffd07550")));
 		assertTrue(((ReferencingElement)e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffd07ba0")));
-		assertEquals(3, ((ReferencingElement)e).getReferences().size());
+		assertEquals(4, ((ReferencingElement)e).getReferences().size());
 
 		e = information.getByAddress("0x00000000ffd07550");
 		assertEquals("Object", e.getType());
