@@ -62,13 +62,13 @@ public class TrainingLogParser extends LogParser {
 
 		//First we find the Symbol related to
 		final var parentClassName = splitMessage[0];
-		ReferencingElement parentSymbol = assignClassToSymbol(findSymbol(parentClassName), true);
+		ReferencingElement parentSymbol = assignClassToSymbol(findSymbol(parentClassName));
 
 		if (trimmedMessage.startsWith("reverted klass")) {
 //	reverted klass  CP entry [102]: io/reactivex/rxjava3/internal/subscribers/InnerQueuedSubscriber unreg => io/reactivex/rxjava3/internal/util/QueueDrainHelper
 			information.getWarnings().add(
 					new Warning(
-							List.of(parentSymbol, assignClassToSymbol(findSymbol(splitMessage[3]), true)),
+							List.of(parentSymbol, assignClassToSymbol(findSymbol(splitMessage[3]))),
 							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedKlass));
 			findOrCreateSymbolAndLinkToParent(parentSymbol,
 					"Used by " + parentSymbol.getKey() + ".", splitMessage[3]);
@@ -79,11 +79,10 @@ public class TrainingLogParser extends LogParser {
 			information.getWarnings().add(
 					new Warning(
 							List.of(parentSymbol,
-									assignClassToSymbol(findSymbol(names[1]), true),
-									assignClassToSymbol(findSymbol(names[0].substring(0, names[0].lastIndexOf("."))),
-											true),
+									assignClassToSymbol(findSymbol(names[1])),
+									assignClassToSymbol(findSymbol(names[0].substring(0, names[0].lastIndexOf(".")))),
 									assignClassToSymbol(findSymbol(names[0].substring(names[0].lastIndexOf(
-											".") + 1)), true)),
+											".") + 1)))),
 							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedField));
 		} else if (trimmedMessage.startsWith("reverted method")
 				|| trimmedMessage.startsWith("reverted interface method")) {
@@ -91,10 +90,10 @@ public class TrainingLogParser extends LogParser {
 			final var names = splitMessage[1].split(":");
 			information.getWarnings().add(
 					new Warning(
-							List.of(parentSymbol, assignClassToSymbol(findSymbol(names[1]), true),
-									assignClassToSymbol(findSymbol(names[0].substring(0, names[0].lastIndexOf("."))), true),
-									assignClassToSymbol(findSymbol(names[0].substring(names[0].lastIndexOf(".") + 1)), true),
-									assignClassToSymbol(findSymbol(names[1]), true)),
+							List.of(parentSymbol, assignClassToSymbol(findSymbol(names[1])),
+									assignClassToSymbol(findSymbol(names[0].substring(0, names[0].lastIndexOf(".")))),
+									assignClassToSymbol(findSymbol(names[0].substring(names[0].lastIndexOf(".") + 1))),
+									assignClassToSymbol(findSymbol(names[1]))),
 							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedMethod));
 			final String source = "Used by a field in " + names[0] + ".";
 			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1]);
@@ -106,10 +105,10 @@ public class TrainingLogParser extends LogParser {
 			final var names = splitMessage[2].split(":");
 			information.getWarnings().add(
 					new Warning(
-							List.of(parentSymbol, assignClassToSymbol(findSymbol(names[1]), true),
-									assignClassToSymbol(findSymbol(names[0].substring(0, names[0].lastIndexOf("."))), true),
-									assignClassToSymbol(findSymbol(names[0].substring(names[0].lastIndexOf(".") + 1)), true),
-									assignClassToSymbol(findSymbol(names[1]), true)),
+							List.of(parentSymbol, assignClassToSymbol(findSymbol(names[1])),
+									assignClassToSymbol(findSymbol(names[0].substring(0, names[0].lastIndexOf(".")))),
+									assignClassToSymbol(findSymbol(names[0].substring(names[0].lastIndexOf(".") + 1))),
+									assignClassToSymbol(findSymbol(names[1]))),
 							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedIndy));
 			final String source = "Used by indy " + splitMessage[0] + ".";
 			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")));
@@ -125,7 +124,7 @@ public class TrainingLogParser extends LogParser {
 		//First we find the Symbol related to
 		final var parentClassName = splitMessage[0];
 		ReferencingElement parentSymbol = findSymbol(parentClassName);
-		assignClassToSymbol(parentSymbol, false);
+		assignClassToSymbol(parentSymbol);
 
 		if (trimmedMessage.startsWith("archived klass")) {
 //	archived klass  CP entry [  2]: org/infinispan/rest/framework/impl/InvocationImpl unreg => java/lang/Object boot
@@ -160,11 +159,10 @@ public class TrainingLogParser extends LogParser {
 		}
 	}
 
-	private ReferencingElement assignClassToSymbol(ReferencingElement symbol, boolean createClasses) {
-		// If a class already exists with this Symbol, link it. If not, create it only if createClasses say so
+	private ReferencingElement assignClassToSymbol(ReferencingElement symbol) {
+		// If a class already exists with this Symbol, link it. If not, create it but don't add it to the cache yet
 		// We will do the heavy creation work on AOT Parser, if any is loaded
 		// because at this point, we don't know anything about the class... except the name
-		// is it cached? is it not? Who knows with this information?
 		final var className = symbol.getKey().replaceAll("/", ".");
 		var classObj = information.getElements(className, null, null, true, true,
 				"Class").findAny();
@@ -179,9 +177,9 @@ public class TrainingLogParser extends LogParser {
 					"Class").findAny();
 
 			classObject = (ClassObject) classObj
-					.orElse(createClasses ? ElementFactory.getOrCreate(className, "Class", null) : null);
+					.orElse(ElementFactory.getOrCreate(className, "Class", null));
 		} else if (className.contains(".") && !className.contains("(")) {
-			classObject = createClasses ? (ClassObject) ElementFactory.getOrCreate(className, "Class", null) : null;
+			classObject = (ClassObject) ElementFactory.getOrCreate(className, "Class", null);
 		} else {
 			classObject = null;
 		}
@@ -189,11 +187,6 @@ public class TrainingLogParser extends LogParser {
 		if (classObject != null) {
 			classObject.addSymbol(symbol);
 			symbol.addReference(classObject);
-			// Now search for the corresponding ConstantPool and, if exists, link this class to its poolHolder
-			// again, don't create it, just... wait for an AOT Cache map file if it does not exist yet
-			information.getElements(className, null, null, true, true,
-							"ConstantPool").findAny()
-					.ifPresent(element -> ((ConstantPoolObject) element).setPoolHolder(classObject));
 		}
 		return symbol;
 

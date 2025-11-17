@@ -111,8 +111,8 @@ class TrainingLogParserTest extends DefaultTest {
 
 		var parentSymbol = (ReferencingElement) Information.getMyself().getElements("org/infinispan/rest/framework/impl/InvocationImpl",
 				null, null, true, true, "Symbol").findAny().get();
-		assertEquals(16, parentSymbol.getReferences().size());
-		assertEquals(1,
+		assertEquals(17, parentSymbol.getReferences().size());
+		assertEquals(2,
 				((ReferencingElement) Information.getMyself().getElements("io/reactivex/rxjava3/internal/subscribers/InnerQueuedSubscriber",
 						null, null, true, true, "Symbol").findAny().get())
 						.getReferences().size());
@@ -122,20 +122,20 @@ class TrainingLogParserTest extends DefaultTest {
 				"jdk/jfr/internal/jfc/model/XmlSelection jdk/jfr/internal/jfc/model/XmlSelection.getDefault:()Ljava/lang/String; => jdk/jfr/internal/jfc/model/XmlSelection");
 		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/jfr/internal/jfc/model/XmlSelection",
 				null, null, true, true, "Symbol").findAny().get();
-		assertEquals(2, parentSymbol.getReferences().size());
+		assertEquals(3, parentSymbol.getReferences().size());
 
 		parser.accept("[trace][aot,resolve              ] archived method CP entry [  8]: " +
 				"jdk/jfr/internal/dcmd/DCmdStart$$Lambda+0x80000010e java/lang/Object.<init>:()V => java/lang/Object");
 		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/jfr/internal/dcmd/DCmdStart$$Lambda+0x80000010e",
 				null, null, true, true, "Symbol").findAny().get();
-		assertEquals(3, parentSymbol.getReferences().size());
+		assertEquals(4, parentSymbol.getReferences().size());
 
 		parser.accept("[trace][aot,resolve              ] archived method CP entry [338]: " +
 				"jdk/jfr/internal/dcmd/DCmdStart jdk/jfr/internal/dcmd/Argument.<init>" +
 				":(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZLjava/lang/String;Z)V => jdk/jfr/internal/dcmd/Argument");
 		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/jfr/internal/dcmd/DCmdStart",
 				null, null, true, true, "Symbol").findAny().get();
-		assertEquals(3, parentSymbol.getReferences().size());
+		assertEquals(4, parentSymbol.getReferences().size());
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("jdk/jfr/internal/dcmd/Argument")));
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("<init>")));
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey()
@@ -146,7 +146,7 @@ class TrainingLogParserTest extends DefaultTest {
 				"jdk/internal/module/ModuleBootstrap$$Lambda+0x80000000c java/util/Collection.stream:()Ljava/util/stream/Stream; => java/util/Collection");
 		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/internal/module/ModuleBootstrap$$Lambda+0x80000000c",
 				null, null, true, true, "Symbol").findAny().get();
-		assertEquals(3, parentSymbol.getReferences().size());
+		assertEquals(4, parentSymbol.getReferences().size());
 
 		//With Symbols from the AOT Map file
 		aotParser.accept("0x00000008007cd538: @@ Symbol             14 jdk/jfr/internal/jfc/model/XmlNot");
@@ -157,7 +157,7 @@ class TrainingLogParserTest extends DefaultTest {
 				"jdk/jfr/internal/jfc/model/XmlNot java/util/List.size:()I => java/util/List");
 		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/jfr/internal/jfc/model/XmlNot",
 				null, null, true, true, "Symbol").findAny().get();
-		assertEquals(3, parentSymbol.getReferences().size());
+		assertEquals(4, parentSymbol.getReferences().size());
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("java/util/List")));
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("size")));
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("()I")));
@@ -168,7 +168,7 @@ class TrainingLogParserTest extends DefaultTest {
 				"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;");
 		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/jfr/internal/dcmd/DCmdDump",
 				null, null, true, true, "Symbol").findAny().get();
-		assertEquals(3, parentSymbol.getReferences().size());
+		assertEquals(4, parentSymbol.getReferences().size());
 
 		final var signature = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;";
 		parser.accept("[trace][aot,resolve              ] archived indy   CP entry [263]: " +
@@ -176,7 +176,7 @@ class TrainingLogParserTest extends DefaultTest {
 				signature);
 		parentSymbol = (ReferencingElement) Information.getMyself().getElements("jdk/jfr/internal/dcmd/DCmdCheck",
 				null, null, true, true, "Symbol").findAny().get();
-		assertEquals(3, parentSymbol.getReferences().size());
+		assertEquals(4, parentSymbol.getReferences().size());
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("java/lang/invoke/LambdaMetafactory")));
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals("metafactory")));
 		assertTrue(parentSymbol.getReferences().stream().anyMatch(symbol -> symbol.getKey().equals(signature)));
