@@ -16,6 +16,9 @@ import tooling.leyden.commands.LoadFileCommand;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -79,10 +82,10 @@ class AOTCacheParserTest extends DefaultTest {
 		var classObject = ElementFactory.getOrCreate("java.lang.Float", "Class", null);
 		information.addAOTCacheElement(classObject, "test");
 
-		classObject =  ElementFactory.getOrCreate("java.lang.String", "Class", null);
+		classObject = ElementFactory.getOrCreate("java.lang.String", "Class", null);
 		information.addAOTCacheElement(classObject, "test");
 
-		classObject =  ElementFactory.getOrCreate("java.lang.String$CaseInsensitiveComparator", "Class", null);
+		classObject = ElementFactory.getOrCreate("java.lang.String$CaseInsensitiveComparator", "Class", null);
 		information.addAOTCacheElement(classObject, "test");
 
 		aotCacheParser.accept("0x00000000fff63458: @@ Object (0xfff63458) java.lang.String$CaseInsensitiveComparator");
@@ -117,7 +120,7 @@ class AOTCacheParserTest extends DefaultTest {
 		assertEquals(1, information.getElements(null, null, null, true, false, "Class").count());
 		for (Element e : information.getElements(null, null, null, true, false, "Symbol").toList()) {
 			assertTrue(e instanceof ReferencingElement);
-			assertEquals(0, ((ReferencingElement) e).getReferences().size());
+			assertEquals(1, ((ReferencingElement) e).getReferences().size());
 		}
 		ClassObject classObject = (ClassObject) information.getElements(null, null, null, true, false, "Class").findAny().get();
 		assertEquals(2, classObject.getSymbols().size());
@@ -376,10 +379,10 @@ class AOTCacheParserTest extends DefaultTest {
 
 		assertEquals(9, information.getElements(null, null, null, true, true, "Class").count());
 		assertEquals(4, information.getElements(null, null, null, true, true, "Class")
-				.filter(e -> ((ClassObject)e).isClassLoader()).count());
+				.filter(e -> ((ClassObject) e).isClassLoader()).count());
 
 		assertTrue(information.getElements(null, null, null, true, true, "Class")
-				.filter(e -> ((ClassObject)e).isClassLoader())
+				.filter(e -> ((ClassObject) e).isClassLoader())
 				.allMatch(e -> ((ClassObject) e).getPackageName().equalsIgnoreCase("jdk.internal.loader")));
 	}
 
@@ -401,6 +404,9 @@ class AOTCacheParserTest extends DefaultTest {
 						0x0000000800853708: @@ Class             832 jdk.internal.loader.ClassLoaders$BootClassLoader
 						0x00000008008b0a08: @@ Class             1632 java.util.ArrayList
 						0x0000000800932e00: @@ Class             560 java.lang.module.ModuleDescriptor$Version
+						
+						0x0000000802ce23e8: @@ Symbol            32 [Ljava/lang/Integer;
+						0x0000000802ce4ea8: @@ Symbol            32 [Ljava/lang/Object;
 						
 						0x00000000ffd00000: @@ Object (0xffd00000) [Ljava.lang.Object; length: 5391
 						 - klass: 'java/lang/Object'[] 0x00000008007eee30
@@ -460,7 +466,7 @@ class AOTCacheParserTest extends DefaultTest {
 						 - private final 'sequence' 'Ljava/util/List;' @16 0x00000000ffd07550 (0xffd07550) java.util.ArrayList
 						 - resolved_references: 0x00000000ffd07ba0 (0xffd07ba0) [Ljava.lang.Object; length: 18
 						0x00000000ffd07518:   00000001 00000000 00932e00 ffd07538 ffd07550 ffd07588 ffd075d0 00000000   ............8u..Pu...u...u......
-					
+						
 						
 						0x00000000ffd07550: @@ Object (0xffd07550) java.util.ArrayList
 						 - klass: 'java/util/ArrayList' 0x00000008008b0a08
@@ -508,106 +514,146 @@ class AOTCacheParserTest extends DefaultTest {
 		Element e = information.getByAddress("0x00000000ffd00000");
 		assertEquals("Object", e.getType());
 		assertTrue(e.isHeapRoot());
-		assertTrue(((ReferencingElement)e).getReferences().stream()
-				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008007eee30")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
+				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x0000000802ce4ea8")));
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffd05450")));
-		assertEquals(2, ((ReferencingElement)e).getReferences().size());
+		assertEquals(2, ((ReferencingElement) e).getReferences().size());
+		assertEquals(1, ((ReferencingElement)information.getByAddress("0x0000000802ce4ea8")).getReferences().size());
+		assertTrue(((ReferencingElement)information.getByAddress("0x0000000802ce4ea8")).getReferences().stream()
+				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008007eee30")));
 
 		e = information.getByAddress("0x00000000ffd05450");
 		assertEquals("Object", e.getType());
 		assertTrue(e.isHeapRoot());
-		assertTrue(((ReferencingElement)e).getReferences().stream()
-				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x000000080081be80")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
+				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x0000000802ce23e8")));
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffe5d0a0")));
-		assertEquals(2, ((ReferencingElement)e).getReferences().size());
+		assertEquals(2, ((ReferencingElement) e).getReferences().size());
 
 		e = information.getByAddress("0x00000000ffd074c0");
 		assertEquals("Object", e.getType());
 		assertFalse(e.isHeapRoot());
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008008057c8")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffd07500")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffd07518")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008007f4290")));
-		assertEquals(5, ((ReferencingElement)e).getReferences().size());
+		assertEquals(5, ((ReferencingElement) e).getReferences().size());
 
 		e = information.getByAddress("0x00000000ffd07500");
 		assertEquals("Object", e.getType());
 		assertFalse(e.isHeapRoot());
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008007f4290")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffe61c80")));
-		assertEquals(2, ((ReferencingElement)e).getReferences().size());
+		assertEquals(2, ((ReferencingElement) e).getReferences().size());
 
 		e = information.getByAddress("0x00000000ffe61c80");
 		assertEquals("Object", e.getType());
 		assertFalse(e.isHeapRoot());
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008007f08c0")));
-		assertEquals(1, ((ReferencingElement)e).getReferences().size());
+		assertEquals(1, ((ReferencingElement) e).getReferences().size());
 
 		e = information.getByAddress("0x00000000ffd07ba0");
 		assertEquals("Object", e.getType());
 		assertFalse(e.isHeapRoot());
-		assertTrue(((ReferencingElement)e).getReferences().stream()
-				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008007eee30")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
+				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x0000000802ce4ea8")));
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffd07500")));
-		assertEquals(2, ((ReferencingElement)e).getReferences().size());
+		assertEquals(2, ((ReferencingElement) e).getReferences().size());
 
 		e = information.getByAddress("0x00000000ffd07518");
 		assertEquals("Object", e.getType());
 		assertFalse(e.isHeapRoot());
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x0000000800932e00")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffd07550")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffd07ba0")));
-		assertEquals(4, ((ReferencingElement)e).getReferences().size());
+		assertEquals(4, ((ReferencingElement) e).getReferences().size());
 
 		e = information.getByAddress("0x00000000ffd07550");
 		assertEquals("Object", e.getType());
 		assertFalse(e.isHeapRoot());
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008008b0a08")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffd07568")));
-		assertEquals(2, ((ReferencingElement)e).getReferences().size());
+		assertEquals(2, ((ReferencingElement) e).getReferences().size());
 
 		e = information.getByAddress("0x00000000ffd07568");
 		assertEquals("Object", e.getType());
 		assertFalse(e.isHeapRoot());
-		assertTrue(((ReferencingElement)e).getReferences().stream()
-				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008007eee30")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
+				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x0000000802ce4ea8")));
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000000ffe5d0a0")));
-		assertEquals(2, ((ReferencingElement)e).getReferences().size());
+		assertEquals(2, ((ReferencingElement) e).getReferences().size());
 
 		e = information.getByAddress("0x00000000ffe5d0a0");
 		assertEquals("Object", e.getType());
 		assertFalse(e.isHeapRoot());
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x000000080081b748")));
-		assertEquals(1, ((ReferencingElement)e).getReferences().size());
+		assertEquals(1, ((ReferencingElement) e).getReferences().size());
 
 		e = information.getByAddress("0x00000000ffdf4f38");
 		assertEquals("Object", e.getType());
 		assertFalse(e.isHeapRoot());
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008007f5a48")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008007f4290")));
-		assertTrue(((ReferencingElement)e).getReferences().stream()
+		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008008b0a08")));
-		assertEquals(3, ((ReferencingElement)e).getReferences().size());
+		assertEquals(3, ((ReferencingElement) e).getReferences().size());
 
+	}
+
+
+	@Test
+	void matchesListOfClasses() {
+		String parameters = "Ljava/util/function/Supplier<Ljavax/script/ScriptEngine;>;" +
+				"Ljava/lang/Class<+Lch/qos/logback/core/model/Model;>;" +
+				"Ljava/util/List<Lch/qos/logback/core/model/Model;>;" +
+				"Ltomates/Gazpacho;" +
+				"Ljava/util/Map<Ljava/lang/String;Lorg/aspectj/weaver/UnresolvedType;>;" +
+				"Ljava/lang/Class<TS;>;" +
+				"Ljava/lang/ThreadLocal<Ljava/util/Map<Ljava/lang/Object;Ljavax/script/ScriptEngine;>;>;" +
+				"Lpatatas/Fritas;";
+
+		Matcher m = AOTMapParser.listOfClasses.matcher(parameters);
+		List<String> matches = new ArrayList<>();
+		int start = 0;
+		StringBuilder parsedData = new StringBuilder();
+		while (m.find(start)) {
+			var found = m.group("class") + (m.group("type") != null ? m.group("type") : "") + ";";
+			matches.add(found);
+			parsedData.append(found);
+			start = (m.group("type") != null ? m.end("type") : m.end());
+		}
+
+		assertTrue(matches.stream().allMatch(found -> found.startsWith("L") && found.endsWith(";")));
+		assertTrue(matches.stream().anyMatch(found -> found.equalsIgnoreCase("Ljava/util/function/Supplier<Ljavax" +
+				"/script/ScriptEngine;>;")));
+		assertTrue(matches.stream().anyMatch(found -> found.equalsIgnoreCase("Ljava/lang/Class<+Lch/qos/logback/core/model/Model;>;")));
+		assertTrue(matches.stream().anyMatch(found -> found.equalsIgnoreCase("Ljava/util/List<Lch/qos/logback/core/model/Model;>;")));
+		assertTrue(matches.stream().anyMatch(found -> found.equalsIgnoreCase("Ltomates/Gazpacho;")));
+		assertTrue(matches.stream().anyMatch(found -> found.equalsIgnoreCase("Ljava/util/Map<Ljava/lang/String;Lorg/aspectj/weaver/UnresolvedType;>;")));
+		assertTrue(matches.stream().anyMatch(found -> found.equalsIgnoreCase("Ljava/lang/Class<TS;>;")));
+		assertTrue(matches.stream().anyMatch(found -> found.equalsIgnoreCase("Ljava/lang/ThreadLocal<Ljava/util/Map<Ljava/lang/Object;Ljavax/script/ScriptEngine;>;>;")));
+		assertTrue(matches.stream().anyMatch(found -> found.equalsIgnoreCase("Lpatatas/Fritas;")));
+		assertEquals(8, matches.size());
+		assertEquals(parameters, parsedData.toString());
 	}
 
 }

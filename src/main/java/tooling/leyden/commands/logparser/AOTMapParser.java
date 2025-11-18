@@ -83,6 +83,11 @@ public class AOTMapParser extends Parser {
 			" - (?<modifiers>[public|protected|private|static|final|transient|volatile|synthetic|injected|\\s]+)'" +
 					"(?<variable>.+)'\\s+'(?<classname>[^;']+)'\\s+(?<index>@\\d*+)\\s*(?<value>[^ ]+)\\s*\\(?" +
 					regexpAddress + "?\\)?\\s*\\(?(?<miniaddress>0[xX][0-9a-fA-F]+)?\\)?(?:.*)");
+	static final Pattern listOfClasses = Pattern.compile(
+			"(?<class>L?[^<>;]+" +
+					"((?=<)(?=(?<type>(?:(?=.*?<(?!.*?\\4)(.*>(?!.*\\3).*))(?=.*?>(?!.*?\\5)(.*)).)+?.*?(?=\\4)[^<]*(?=\\5$))))?" +
+					")");
+	private final Pattern methodSignature1 = Pattern.compile("\\((?<parameters>.*)\\)(?<return>.*)");
 
 	// When parsing extra information, we need to keep track of
 	// what element we are processing
@@ -362,7 +367,7 @@ public class AOTMapParser extends Parser {
 
 		//Link to corresponding assets:
 		final var className = contentParts[0];
-		 if (!identifier.contains(" ")) {
+		if (!identifier.contains(" ")) {
 			//0x00000007ffd66460: @@ Object (0xfffacc8c) jdk.internal.misc.Unsafe
 			this.information.getElements(className, null, null, true, true,
 					"Class").forEach(element::addReference);
@@ -388,7 +393,7 @@ public class AOTMapParser extends Parser {
 		} else if (className.startsWith("[")) {
 			//0x00000007ffd666b0: @@ Object (0xfffaccd6) [Ljava.lang.ref.SoftReference; length: 26
 			//0x00000007ffd66728: @@ Object (0xfffacce5) [I length: 0
-			var targetClass = className.replaceAll("\\.","/");
+			var targetClass = className.replaceAll("\\.", "/");
 			this.information.getElements(targetClass.trim(), null, null, true, true,
 					"Symbol").forEach(element::addReference);
 		}
@@ -399,27 +404,67 @@ public class AOTMapParser extends Parser {
 	private Element processSymbol(String identifier, String address) {
 		Element element = ElementFactory.getOrCreate(identifier, "Symbol", address);
 
-		//Try to associate it to the corresponding class:
-		var classObject =
-				this.information.getElements(identifier.replaceAll("/", "."), null, null, true, true,
-						"Class").findAny();
-		if (classObject.isPresent()) {
-			((ClassObject) classObject.get()).addSymbol((ReferencingElement) element);
-		} else if (identifier.startsWith("L") && identifier.endsWith(";")) {
-			classObject =
-					this.information.getElements(identifier.replaceAll("/", ".").substring(1, identifier.length() - 1),
-							null,
-							null, true,
-							true,
-							"Class").findAny();
-			classObject.ifPresent(value -> ((ClassObject) value).addSymbol((ReferencingElement) element));
+		if (identifier.startsWith("(")) {
+			// Link method signatures to their corresponding symbols
+			//0x0000000803bd3fa0: @@ Symbol            64 (Ljava/lang/Object;Ljava/lang/Object;DJ)Ljava/lang/Object;
+			//0x0000000803bdeb78: @@ Symbol            48 (Lsun/nio/fs/UnixSecureDirectoryStream;)V
+			//0x0000000803bd3340: @@ Symbol            48 ()Ljavax/net/ssl/SSLServerSocketFactory;
+			//0x0000000803bd28e8: @@ Symbol            72 (Ljava/util/function/Supplier<Ljavax/script/ScriptEngine;>;)V
+			Matcher m = methodSignature1.matcher(identifier);
+			if (m.matches()) {
+				//Link to Symbol for return type
+				this.information.getElements(m.group("return"), null, null, true, true,
+						"Symbol").findAny().ifPresent(symbol -> ((ReferencingElement) element).addReference(symbol));
+
+				m = listOfClasses.matcher(m.group("parameters"));
+				int start = 0;
+				while (m.find(start)) {
+					var found = m.group("class") + (m.group("type") != null ? m.group("type") : "") + ";";
+					this.information.getElements(found, null, null, true, true,
+							"Symbol").findAny().ifPresent(symbol -> ((ReferencingElement) element).addReference(symbol));
+					start = (m.group("type") != null ? m.end("type") : m.end());
+				}
+			}
+
+		} else {
+			//Generics
+			if (identifier.contains("<")) {
+				//Ljava/util/function/Supplier<Ljavax/script/ScriptEngine;>;
+				Matcher m = listOfClasses.matcher(identifier);
+				while (m.find()) {
+					this.information.getElements(convertSymbolSignatureToClassQualifiedName(m.group("class")), null,
+									null, true, true, "Class")
+							.findAny().ifPresent(classObj -> {
+								((ClassObject) classObj).addSymbol((ReferencingElement) element);
+								((ReferencingElement) element).addReference(classObj);
+							});
+				}
+			} else {
+				identifier = convertSymbolSignatureToClassQualifiedName(identifier);
+				//else 0x0000000803be1968: @@ Symbol            56 java/lang/invoke/LambdaForm$DMH+0x8000000ed
+				//Try to associate it to the corresponding class:
+				this.information.getElements(identifier, null, null, true, true,
+						"Class").findAny().ifPresent(classObj -> {
+					((ClassObject) classObj).addSymbol((ReferencingElement) element);
+					((ReferencingElement) element).addReference(classObj);
+				});
+			}
 		}
-
-		//TODO link method signatures to their corresponding classes
-
 		// Do not link to anything else, we will do that with the logs
 		// logs are factual, not guessing as we can do at this point
 		return element;
+	}
+
+	private static String convertSymbolSignatureToClassQualifiedName(String identifier) {
+		//Lorg/aspectj/weaver/ast/ASTNode;  -> org.aspectj.weaver.ast.ASTNode
+		//[Lcom/fasterxml/jackson/databind/JsonSerializable; -> [Lcom.fasterxml.jackson.databind.JsonSerializable;
+		identifier = identifier.replaceAll("/", ".");
+
+		if (identifier.startsWith("L") && identifier.endsWith(";")) {
+			identifier = identifier.substring(1, identifier.length() - 1);
+		}
+
+		return identifier;
 	}
 
 	private Element processMethodDataAndCounter(String identifier, String address, String type) {
