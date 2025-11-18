@@ -362,27 +362,35 @@ public class AOTMapParser extends Parser {
 
 		//Link to corresponding assets:
 		final var className = contentParts[0];
-		if (className.equalsIgnoreCase("java.lang.String") && className.length() < identifier.length()) {
-			//Add the java.lang.String class itself...
-			this.information.getElements("java.lang.String", null, null, true, true,
+		 if (!identifier.contains(" ")) {
+			//0x00000007ffd66460: @@ Object (0xfffacc8c) jdk.internal.misc.Unsafe
+			this.information.getElements(className, null, null, true, true,
 					"Class").forEach(element::addReference);
-		}
-		if (className.equalsIgnoreCase("java.lang.Class") && className.length() < identifier.length()) {
-			final var targetClass = contentParts[1];
+		} else if (className.equalsIgnoreCase("java.lang.String")) {
+			//0x00000007ffc90208: @@ Object (0xfff92041) java.lang.String "javax.crypto.spec.SecretKeySpec"
+			//Add the java.lang.String class itself... ignore the String
+			this.information.getElements(className, null, null, true, true,
+					"Class").forEach(element::addReference);
+		} else if (className.equalsIgnoreCase("java.lang.Class")) {
+			//0x00000007ffd02620: @@ Object (0xfffa04c4) java.lang.Class Ljava/lang/ProcessEnvironment;
+			//0x00000007ffd026c0: @@ Object (0xfffa04d8) java.lang.Class Ljava/lang/invoke/LambdaForm$DMH+0x800000073; (aot-inited)
+			//0x00000007ffd02b10: @@ Object (0xfffa0562) java.lang.Class J
+			this.information.getElements("java.lang.Class", null, null, true, true,
+					"Class").forEach(element::addReference);
+			var targetClass = contentParts[1];
+			if (contentParts[1].contains(";")) {
+				//Remove (aot-inited) String
+				targetClass = targetClass.substring(0, contentParts[1].indexOf(";") + 1);
+			}
+			//This class refers to... the class behind the symbol
 			this.information.getElements(targetClass, null, null, true, true,
 					"Symbol").forEach(element::addReference);
-			this.information.getElements(targetClass.replaceAll("/", "."), null, null, true, true,
-					"Class").forEach(element::addReference);
-		} else {
-			this.information.getElements(className, null, null, true, true,
-							"Class")
-					.forEach(element::addReference);
-
-			if (className.startsWith("L") && className.endsWith(";")) {
-				this.information.getElements(className.substring(1, className.length() - 1), null,
-								null, true, true, "Class")
-						.forEach(element::addReference);
-			}
+		} else if (className.startsWith("[")) {
+			//0x00000007ffd666b0: @@ Object (0xfffaccd6) [Ljava.lang.ref.SoftReference; length: 26
+			//0x00000007ffd66728: @@ Object (0xfffacce5) [I length: 0
+			var targetClass = className.replaceAll("\\.","/");
+			this.information.getElements(targetClass.trim(), null, null, true, true,
+					"Symbol").forEach(element::addReference);
 		}
 
 		return element;
@@ -406,6 +414,9 @@ public class AOTMapParser extends Parser {
 							"Class").findAny();
 			classObject.ifPresent(value -> ((ClassObject) value).addSymbol((ReferencingElement) element));
 		}
+
+		//TODO link method signatures to their corresponding classes
+
 		// Do not link to anything else, we will do that with the logs
 		// logs are factual, not guessing as we can do at this point
 		return element;
