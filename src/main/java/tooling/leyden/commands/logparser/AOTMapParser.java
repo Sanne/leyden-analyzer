@@ -435,19 +435,18 @@ public class AOTMapParser extends Parser {
 					this.information.getElements(convertSymbolSignatureToClassQualifiedName(m.group("class")), null,
 									null, true, true, "Class")
 							.findAny().ifPresent(classObj -> {
-								((ClassObject) classObj).addSymbol((ReferencingElement) element);
 								((ReferencingElement) element).addReference(classObj);
 							});
 				}
 			} else {
-				identifier = convertSymbolSignatureToClassQualifiedName(identifier);
 				//else 0x0000000803be1968: @@ Symbol            56 java/lang/invoke/LambdaForm$DMH+0x8000000ed
 				//Try to associate it to the corresponding class:
-				this.information.getElements(identifier, null, null, true, true,
-						"Class").findAny().ifPresent(classObj -> {
-					((ClassObject) classObj).addSymbol((ReferencingElement) element);
-					((ReferencingElement) element).addReference(classObj);
-				});
+				this.information.getElements(convertSymbolSignatureToClassQualifiedName(identifier),
+								null, null, true, true, "Class")
+						.findAny().ifPresent(classObj -> {
+							((ClassObject) classObj).addSymbol((ReferencingElement) element);
+							((ReferencingElement) element).addReference(classObj);
+						});
 			}
 		}
 		// Do not link to anything else, we will do that with the logs
