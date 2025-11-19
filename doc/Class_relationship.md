@@ -45,7 +45,9 @@ This means, that for this object to be on the AOT Cache, the class **java.lang.S
 Symbols are less obvious, but the ones that refer to a single fully qualified name of the class are bi-directionally linked to the corresponding class:
 
 > 0x0000000803afcea0: @@ Symbol            24 **jdk/jfr/EventType**
+> 
 > 0x0000000803afd208: @@ Symbol            32 **Ljdk/jfr/EventType;**
+> 
 > 0x0000000803b0f308: @@ Symbol            40 **[Lorg/apache/coyote/ErrorState;**
 
 1. The Symbol **jdk/jfr/EventType** on address 0x0000000803afcea0 will have a bidirectional link to the Class **jdk.jfr.EventType**.
@@ -115,12 +117,15 @@ Objects of type java.lang.Class will show also what type of java.lang.Class it r
 
 This means that for this object to be in the AOT Cache, both classes are needed:
 > Object 0x00000007ffcfe9e0 -> **java.lang.Class**
+> 
 > Object 0x00000007ffcfe9e0 -> Symbol **Ljava/util/logging/ErrorManager;** <-> Class **java.util.logging.ErrorManager**
 
 Then, below the Object header, we have more details about the Object itself. We have a klass, which should be the same as the one on the `@@ Object` line:
 
 > 0x00000007ffd66608: @@ Object (0xfffaccc1) **[Ljava.lang.invoke.LambdaForm$NamedFunction;** length: 6
+> 
 > [...]
+> 
 > - klass: '**java/lang/invoke/LambdaForm$NamedFunction**'[] 0x0000000800a14670
 
 Note that the Symbol of the above class points to the array version of the class, while the `klass` points to the Symbol version of the non-array class. Anyway, both definitions end up creating a dependency to the Class **java.lang.invoke.LambdaForm$NamedFunction**
