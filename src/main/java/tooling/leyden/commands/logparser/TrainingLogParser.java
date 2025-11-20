@@ -241,6 +241,9 @@ public class TrainingLogParser extends LogParser {
 	private void processWarning(String trimmedMessage) {
 		if (trimmedMessage.startsWith("Preload Warning: Verification failed for ")) {
 			var className = trimmedMessage.substring(trimmedMessage.indexOf("for ") + 4);
+			if (className.contains(" ")) {
+				className = className.substring(0, className.indexOf(" "));
+			}
 			this.information.addWarning(ElementFactory.getOrCreate(className, "Class", null), trimmedMessage,
 					WarningType.CacheCreation);
 		} else {

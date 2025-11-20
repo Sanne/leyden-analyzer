@@ -47,8 +47,11 @@ class TrainingLogParserTest extends DefaultTest {
 				".transport.jgroups.JGroupsRaftManager");
 		parser.accept("[warning][aot       ] Preload Warning: Verification failed for org.apache.logging.log4j.core" +
 				".async.AsyncLoggerContext");
+		parser.accept("[13,198s][warning][aot] Preload Warning: Verification failed for " +
+				"org.apache.logging.log4j.core.async.AsyncLoggerContext because a java.lang.NoClassDefFoundError was " +
+				"thrown: com/lmax/disruptor/EventTranslatorVararg");
 
-		assertEquals(10, Information.getMyself().getWarnings().size());
+		assertEquals(11, Information.getMyself().getWarnings().size());
 
 		assertTrue(Information.getMyself().getWarnings().stream().noneMatch(w -> w.getType() == WarningType.CacheLoad));
 	}
