@@ -50,6 +50,7 @@ class ListCommandTest extends DefaultTest {
 
 		ListCommand command = new ListCommand();
 		command.parent = getDefaultCommand();
+		command.showLambdas = true;
 		command.run = false;
 		command.trained = false;
 		command.parameters = new CommonParameters();
