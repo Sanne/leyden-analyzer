@@ -2,6 +2,7 @@ package tooling.leyden.commands;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.Information;
 import tooling.leyden.aotcache.MethodObject;
@@ -34,6 +35,12 @@ class ListCommand implements Runnable {
 			defaultValue = "false",
 			arity = "0..1")
 	protected Boolean run;
+
+	@CommandLine.Option(names = {"--showLambdas"},
+			description = {"Display lambda classes."},
+			defaultValue = "false",
+			arity = "0..1")
+	protected Boolean showLambdas;
 
 	public void run() {
 		final var counter = new AtomicInteger();
@@ -69,6 +76,17 @@ class ListCommand implements Runnable {
 			elements = elements
 					.filter(e -> e.getType().equalsIgnoreCase("Method"))
 					.filter(e -> ((MethodObject) e).getMethodCounters() != null);
+		}
+
+		if (!showLambdas) {
+			elements = elements
+					.filter(e -> {
+							if (e instanceof ClassObject classObject) {
+								return !classObject.getName().contains("$$Lambda");
+							} else {
+								return true;
+							}
+					});
 		}
 
 		elements = elements.sorted(Comparator.comparing(Element::getKey).thenComparing(Element::getType));

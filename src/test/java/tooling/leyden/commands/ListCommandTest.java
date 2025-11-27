@@ -56,12 +56,12 @@ class ListCommandTest extends DefaultTest {
 		assertEquals(21, command.findElements(new AtomicInteger()).count());
 
 		var count = new AtomicInteger();
-		command.parameters.types = new String[]{ "Class" };
+		command.parameters.types = new String[]{"Class"};
 		assertTrue(command.findElements(count).allMatch(e -> e instanceof ClassObject));
 		assertEquals(2, count.get());
 
 		count = new AtomicInteger();
-		command.parameters.types = new String[]{ "Class", "Method" };
+		command.parameters.types = new String[]{"Class", "Method"};
 		assertTrue(command.findElements(count).allMatch(e -> e instanceof ClassObject || e instanceof MethodObject));
 		assertEquals(6, count.get());
 
@@ -81,4 +81,30 @@ class ListCommandTest extends DefaultTest {
 		assertTrue(command.findElements(count).allMatch(e -> e.isTrained()));
 		assertEquals(2, count.get());
 	}
+
+	@Test
+	void filterLambdas() {
+
+		final var loadFile = new LoadFileCommand();
+		loadFile.setParent(getDefaultCommand());
+		AOTMapParser aotCacheParser = new AOTMapParser(loadFile);
+
+		aotCacheParser.accept("0x0000000801b99518: @@ Class             584 io.vertx.core.net.impl.SSLHelper");
+		aotCacheParser.accept("0x0000000801baacf8: @@ Class             544 io.vertx.core.net.impl.SSLHelper$CachedProvider");
+		aotCacheParser.accept("0x0000000801baafd8: @@ Class             544 io.vertx.core.net.impl.SSLHelper$EngineConfig");
+		aotCacheParser.accept("0x0000000801eeae98: @@ Class             584 io.vertx.core.net.impl.SSLHelper$$Lambda/0x800000397");
+		aotCacheParser.accept("0x0000000801eeb208: @@ Class             552 io.vertx.core.net.impl.SSLHelper$$Lambda/0x800000398");
+
+		ListCommand command = new ListCommand();
+		command.parent = getDefaultCommand();
+		command.parameters = new CommonParameters();
+		command.run = false;
+		command.trained = false;
+		command.showLambdas = true;
+		assertEquals(5, command.findElements(new AtomicInteger()).count());
+
+		command.showLambdas = false;
+		assertEquals(3, command.findElements(new AtomicInteger()).count());
+	}
+
 }
