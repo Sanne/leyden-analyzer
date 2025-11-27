@@ -42,6 +42,12 @@ class ListCommand implements Runnable {
 			arity = "0..1")
 	protected Boolean showLambdas;
 
+	@CommandLine.Option(names = {"--showInnerClasses"},
+			description = {"Display inner classes."},
+			defaultValue = "false",
+			arity = "0..1")
+	protected Boolean showInnerClasses;
+
 	public void run() {
 		final var counter = new AtomicInteger();
 		final var elements = findElements(counter);
@@ -81,11 +87,22 @@ class ListCommand implements Runnable {
 		if (!showLambdas) {
 			elements = elements
 					.filter(e -> {
-							if (e instanceof ClassObject classObject) {
-								return !classObject.getName().contains("$$Lambda");
-							} else {
-								return true;
-							}
+						if (e instanceof ClassObject classObject) {
+							return !classObject.getName().contains("$$Lambda");
+						} else {
+							return true;
+						}
+					});
+		}
+
+		if (!showInnerClasses) {
+			elements = elements
+					.filter(e -> {
+						if (e instanceof ClassObject classObject) {
+							return !classObject.getName().contains("$");
+						} else {
+							return true;
+						}
 					});
 		}
 

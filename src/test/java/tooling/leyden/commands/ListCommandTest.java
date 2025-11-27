@@ -51,6 +51,7 @@ class ListCommandTest extends DefaultTest {
 		ListCommand command = new ListCommand();
 		command.parent = getDefaultCommand();
 		command.showLambdas = true;
+		command.showInnerClasses = true;
 		command.run = false;
 		command.trained = false;
 		command.parameters = new CommonParameters();
@@ -84,7 +85,7 @@ class ListCommandTest extends DefaultTest {
 	}
 
 	@Test
-	void filterLambdas() {
+	void filterLambdasAndInnerClasses() {
 
 		final var loadFile = new LoadFileCommand();
 		loadFile.setParent(getDefaultCommand());
@@ -102,10 +103,14 @@ class ListCommandTest extends DefaultTest {
 		command.run = false;
 		command.trained = false;
 		command.showLambdas = true;
+		command.showInnerClasses = true;
 		assertEquals(5, command.findElements(new AtomicInteger()).count());
 
 		command.showLambdas = false;
 		assertEquals(3, command.findElements(new AtomicInteger()).count());
+
+		command.showInnerClasses = false;
+		assertEquals(1, command.findElements(new AtomicInteger()).count());
 	}
 
 }
