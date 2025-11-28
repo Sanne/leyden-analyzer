@@ -28,8 +28,7 @@ import java.util.stream.Stream;
 public class LoadFileCommand implements Runnable {
 
 	final private String logParameters = "-Xlog:class+load,aot+training=trace,aot+codecache*=trace," +
-			"aot+resolve*=trace," +
-			"aot=warning:file=aot.log:level,tags";
+			"aot+resolve*=trace,aot=warning:file=aot.log:level,tags";
 
 	@CommandLine.ParentCommand
 	DefaultCommand parent;

@@ -21,7 +21,9 @@ public class TrainingLogParser extends LogParser {
 
 	@Override
 	void processLine(Line line) {
-		if (containsTags(line.tags(), "aot")) {
+		if (containsTags(line.tags(), "class", "load")) {
+			processClassLoad(line);
+		} else if (containsTags(line.tags(), "aot")) {
 			processAOT(line);
 		}
 	}
@@ -45,8 +47,7 @@ public class TrainingLogParser extends LogParser {
 					processAOTReverted(line.trimmedMessage());
 				}
 			}
-		}
-		if (line.trimmedMessage().startsWith("Skipping ")) {
+		} else if (line.trimmedMessage().startsWith("Skipping ")) {
 			processSkipping(line.message());
 		} else if (line.level().equals("warning")) {
 			processWarning(line.trimmedMessage());
@@ -57,6 +58,16 @@ public class TrainingLogParser extends LogParser {
 		}
 	}
 
+	private void processClassLoad(Line line) {
+		if (line.message().contains(" source: ")) {
+			String className = line.message().substring(0, line.message().indexOf("source: ")).trim();
+			Element e = ElementFactory.getOrCreate(className, "Class", null);
+			e.addSource(getSource());
+			e.addWhereDoesItComeFrom("Loaded during training from "
+					+ line.content().substring(line.content().indexOf("source: ")));
+			e.setLoaded(Element.WhichRun.Training);
+		}
+	}
 
 	private void processAOTReverted(String trimmedMessage) {
 		final var splitMessage = trimmedMessage.substring(trimmedMessage.indexOf("]: ") + 2).trim().split("\\s+");
@@ -207,7 +218,7 @@ public class TrainingLogParser extends LogParser {
 		if (classObj.isPresent()) {
 			((ClassObject) classObj.get()).addSymbol(referencedSymbol);
 			referencedSymbol.addReference(classObj.get());
-			classObj.get().addWhereDoesItComeFrom("Referenced by " + referencedSymbol + ".");
+			classObj.get().addWhereDoesItComeFrom("Referenced by " + trimmedMessage + ".");
 		} else if (symbolName.startsWith("L") && symbolName.endsWith(";")) {
 			classObj =
 					this.information.getElements(symbolName.replaceAll("/", ".").substring(1, symbolName.length() - 1),
@@ -218,7 +229,7 @@ public class TrainingLogParser extends LogParser {
 			if (classObj.isPresent()) {
 				((ClassObject) classObj.get()).addSymbol(referencedSymbol);
 				referencedSymbol.addReference(classObj.get());
-				classObj.get().addWhereDoesItComeFrom("Referenced by " + referencedSymbol + ".");
+				classObj.get().addWhereDoesItComeFrom("Referenced by " + trimmedMessage + ".");
 			}
 		}
 

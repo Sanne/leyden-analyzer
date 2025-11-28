@@ -77,16 +77,16 @@ public class ProductionLogParser extends LogParser {
 				information.addAOTCacheElement(e, getSource());
 
 			} else {
+				// else this wasn't loaded from the aot cache
 				e = ElementFactory.getOrCreate(className, "Class", null);
 				e.addSource(getSource());
-				information.addExternalElement(e);
-				// else this wasn't loaded from the aot cache
 				if (className.contains("$$Lambda/")) {
 					this.information.getStatistics().incrementValue("[LOG] Lambda Methods not loaded from AOT Cache");
 				}
 				this.information.getStatistics().incrementValue("[LOG] Classes not loaded from AOT Cache");
 			}
-			e.addWhereDoesItComeFrom("Loaded from " + line.content().substring(line.content().indexOf("source: ")));
+			e.addWhereDoesItComeFrom("Loaded during production from "
+					+ line.content().substring(line.content().indexOf("source: ")));
 			e.setLoaded(Element.WhichRun.Production);
 		}
 	}
