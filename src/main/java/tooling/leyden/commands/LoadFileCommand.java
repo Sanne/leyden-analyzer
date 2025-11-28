@@ -10,9 +10,13 @@ import tooling.leyden.commands.logparser.ProductionLogParser;
 import tooling.leyden.commands.logparser.TrainingLogParser;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.util.Scanner;
+import java.util.stream.Stream;
 
 /**
  * Commands to load information about the AOT Cache into memory. This can be for example in the form of logs.
@@ -36,27 +40,68 @@ public class LoadFileCommand implements Runnable {
 			defaultValue = "false",
 			arity = "0..1",
 			scope = CommandLine.ScopeType.INHERIT)
-	protected Boolean background= false;
+	protected Boolean background = false;
 
 	public void run() {
 	}
 
 	private void load(Parser consumer, Path... files) {
 
+
 		if (files != null) {
 			for (Path file : files) {
-				if (background) {
-					new Thread(() -> load(file, consumer)).start();
+				var filePath = file.toString();
+				if (filePath.contains("*")) {
+					final var fileSeparator = System.getProperty("file.separator");
+					//Are we sure there is no better way to do this??
+					var startPath = "";
+					if (!filePath.startsWith(fileSeparator)) {
+						startPath = Paths.get(System.getProperty("user.dir")).toString();
+					}
+					// Now, we don't want to get ALL the files in the startPath folder
+					// That may trigger access privilege exceptions
+					// and it can be stupidly long
+					while (filePath.indexOf(fileSeparator) >= 0
+							&& filePath.indexOf("*") > filePath.indexOf(fileSeparator,
+							filePath.indexOf(fileSeparator))) {
+						var nextFolder = filePath.substring(0, filePath.indexOf(fileSeparator));
+						startPath += (startPath.equals(fileSeparator) ? "" : fileSeparator) + nextFolder;
+						filePath = filePath.substring(filePath.indexOf(fileSeparator) + 1);
+					}
+
+					if (!startPath.endsWith(fileSeparator) && !filePath.startsWith(fileSeparator)) {
+						startPath += fileSeparator;
+					}
+
+					PathMatcher pathMatcher =
+							FileSystems.getDefault().getPathMatcher("glob:" + startPath + filePath);
+					try (Stream<Path> pathStream = Files.find(Path.of(startPath), Integer.MAX_VALUE,
+							(path, f) -> pathMatcher.matches(path))) {
+						pathStream.forEach(p -> loadWithBackground(consumer, p));
+					} catch (Exception e) {
+						(new AttributedString("ERROR: Loading '" + file + "': " + e.getMessage(),
+								AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED))).println(parent.getTerminal());
+					}
+
 				} else {
-					load(file, consumer);
+					loadWithBackground(consumer, file);
 				}
 			}
 		}
 	}
 
+	private void loadWithBackground(Parser consumer, Path p) {
+		if (background) {
+			new Thread(() -> load(p, consumer)).start();
+		} else {
+			load(p, consumer);
+		}
+	}
+
 	private void load(Path path, Parser consumer) {
 		long time = System.currentTimeMillis();
-		parent.getOut().println("Adding " + path.toAbsolutePath().getFileName()
+		parent.getOut().println("Adding " + path.getFileName()
+				+ "(" + path.toAbsolutePath() + ")"
 				+ (background ? " in background " : " ")
 				+ "to our analysis...");
 
@@ -83,7 +128,7 @@ public class LoadFileCommand implements Runnable {
 				try {
 					consumer.accept(scanner.nextLine());
 				} catch (Exception e) {
-					//Silently fails, we don't care about weirdly formatted log lines and seem similar
+					//Silently fails, we don't care about weirdly formatted log lines that seem similar
 					//to other loglines that we know how to process
 				}
 			}
