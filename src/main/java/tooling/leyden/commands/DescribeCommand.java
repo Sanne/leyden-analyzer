@@ -36,8 +36,6 @@ class DescribeCommand implements Runnable {
 		List<Element> elements;
 
 		switch (parameters.use) {
-			case both -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-					parameters.excludePackageName, parameters.showArrays, true, parameters.types).toList();
 			case notCached ->
 					elements = Information.getMyself().filterByParams(
 							parameters.packageName, parameters.excludePackageName, parameters.showArrays, parameters.types,
@@ -45,8 +43,10 @@ class DescribeCommand implements Runnable {
 									.filter(keyElementEntry -> parameters.getName().isBlank()
 											|| keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
 									.map(keyElementEntry -> keyElementEntry.getValue())).toList();
-			default -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
+			case cached -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
 					parameters.excludePackageName, parameters.showArrays, false, parameters.types).toList();
+			default -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
+					parameters.excludePackageName, parameters.showArrays, true, parameters.types).toList();
 		}
 
 		AttributedStringBuilder sb = new AttributedStringBuilder();
@@ -101,15 +101,23 @@ class DescribeCommand implements Runnable {
 						sb.append(AttributedString.NEWLINE);
 						sb.append(leftPadding + "Where does this element come from: ");
 						sb.append(AttributedString.NEWLINE);
-						sb.append(leftPadding + "  _____");
-						sb.append(AttributedString.NEWLINE);
 						e.getWhereDoesItComeFrom().forEach(s -> {
 							sb.append(leftPadding + "  > ");
 							sb.append(s);
 							sb.append(AttributedString.NEWLINE);
 						});
-						sb.append(leftPadding + "  _____");
+					}
+
+					if (!e.getSources().isEmpty()) {
+						sb.append(leftPadding);
 						sb.append(AttributedString.NEWLINE);
+						sb.append(leftPadding + "This information comes from: ");
+						sb.append(AttributedString.NEWLINE);
+						e.getSources().forEach(s -> {
+							sb.append(leftPadding + "  > ");
+							sb.append(s);
+							sb.append(AttributedString.NEWLINE);
+						});
 					}
 				}
 				sb.append("-----");

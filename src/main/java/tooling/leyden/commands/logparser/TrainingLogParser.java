@@ -4,6 +4,7 @@ import org.jline.utils.AttributedString;
 import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.Configuration;
 import tooling.leyden.aotcache.ConstantPoolObject;
+import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.ElementFactory;
 import tooling.leyden.aotcache.ReferencingElement;
 import tooling.leyden.aotcache.Warning;
@@ -71,7 +72,7 @@ public class TrainingLogParser extends LogParser {
 							List.of(parentSymbol, assignClassToSymbol(findSymbol(splitMessage[3]))),
 							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedKlass));
 			findOrCreateSymbolAndLinkToParent(parentSymbol,
-					"Used by " + parentSymbol.getKey() + ".", splitMessage[3]);
+					"Used by " + parentSymbol.getKey() + ".", splitMessage[3], trimmedMessage);
 		} else if (trimmedMessage.startsWith("reverted field")) {
 // reverted field  CP entry [ 45]: io/netty/channel/AbstractChannelHandlerContext => io/netty/channel/DefaultChannelPipeline.head:Lio/netty/channel/DefaultChannelPipeline$HeadContext;
 
@@ -96,9 +97,9 @@ public class TrainingLogParser extends LogParser {
 									assignClassToSymbol(findSymbol(names[1]))),
 							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedMethod));
 			final String source = "Used by a field in " + names[0] + ".";
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1]);
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")));
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1));
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1], trimmedMessage);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")), trimmedMessage);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1), trimmedMessage);
 		} else if (trimmedMessage.startsWith("reverted indy ")) {
 // reverted indy   CP entry [294]: jdk/jfr/internal/dcmd/DCmdDump (0) => java/lang/invoke/LambdaMetafactory.metafactory:
 // (Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;
@@ -111,9 +112,9 @@ public class TrainingLogParser extends LogParser {
 									assignClassToSymbol(findSymbol(names[1]))),
 							new AttributedString(trimmedMessage), WarningType.CacheCreationRevertedIndy));
 			final String source = "Used by indy " + splitMessage[0] + ".";
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")));
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1));
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1]);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")), trimmedMessage);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1), trimmedMessage);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1], trimmedMessage);
 		}
 	}
 
@@ -124,19 +125,20 @@ public class TrainingLogParser extends LogParser {
 		//First we find the Symbol related to
 		final var parentClassName = splitMessage[0];
 		ReferencingElement parentSymbol = findSymbol(parentClassName);
+		parentSymbol.addSource(trimmedMessage);
 		assignClassToSymbol(parentSymbol);
 
 		if (trimmedMessage.startsWith("archived klass")) {
 //	archived klass  CP entry [  2]: org/infinispan/rest/framework/impl/InvocationImpl unreg => java/lang/Object boot
 			findOrCreateSymbolAndLinkToParent(parentSymbol,
-					"Used by " + parentSymbol.getKey() + " " + splitMessage[4] + ".", splitMessage[3]);
+					"Used by " + parentSymbol.getKey() + " " + splitMessage[4] + ".", splitMessage[3], trimmedMessage);
 		} else if (trimmedMessage.startsWith("archived field")) {
 // archived field  CP entry [ 20]: org/infinispan/rest/framework/impl/InvocationImpl => org/infinispan/rest/framework/impl/InvocationImpl.action:Ljava/lang/String;
 			final var names = splitMessage[2].split(":");
 			final String source = "Used by a field in " + names[0] + ".";
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1]);
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")));
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1));
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1], trimmedMessage);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")), trimmedMessage);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1), trimmedMessage);
 		} else if (trimmedMessage.startsWith("archived method")
 				|| trimmedMessage.startsWith("archived interface method")) {
 // archived interface method CP entry [ 13]: jdk/jfr/internal/jfc/model/XmlNot java/util/List.size:()I => java/util/List
@@ -144,18 +146,18 @@ public class TrainingLogParser extends LogParser {
 // :(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZLjava/lang/String;Z)V => jdk/jfr/internal/dcmd/Argument
 			final var names = splitMessage[1].split(":");
 			final String source = "Used by method " + names[0] + ".";
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")));
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1));
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1]);
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, splitMessage[3]);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")), trimmedMessage);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1), trimmedMessage);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1], trimmedMessage);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, splitMessage[3], trimmedMessage);
 		} else if (trimmedMessage.startsWith("archived indy ")) {
 // archived indy   CP entry [294]: jdk/jfr/internal/dcmd/DCmdDump (0) => java/lang/invoke/LambdaMetafactory.metafactory:
 // (Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;
 			final var names = splitMessage[3].split(":");
 			final String source = "Used by indy " + splitMessage[0] + ".";
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")));
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1));
-			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1]);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(0, names[0].lastIndexOf(".")), trimmedMessage);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[0].substring(names[0].lastIndexOf(".") + 1), trimmedMessage);
+			findOrCreateSymbolAndLinkToParent(parentSymbol, source, names[1], trimmedMessage);
 		}
 	}
 
@@ -187,13 +189,14 @@ public class TrainingLogParser extends LogParser {
 		if (classObject != null) {
 			classObject.addSymbol(symbol);
 			symbol.addReference(classObject);
+			classObject.addSource(getSource());
 		}
 		return symbol;
 
 	}
 
 	private ReferencingElement findOrCreateSymbolAndLinkToParent(ReferencingElement parentSymbol, String source,
-																 String symbolName) {
+																 String symbolName, String trimmedMessage) {
 		ReferencingElement referencedSymbol = findSymbol(symbolName);
 
 		// If a class already exists with this Symbol, link it. If not, ignore it.
@@ -204,6 +207,7 @@ public class TrainingLogParser extends LogParser {
 		if (classObj.isPresent()) {
 			((ClassObject) classObj.get()).addSymbol(referencedSymbol);
 			referencedSymbol.addReference(classObj.get());
+			classObj.get().addWhereDoesItComeFrom("Referenced by " + referencedSymbol + ".");
 		} else if (symbolName.startsWith("L") && symbolName.endsWith(";")) {
 			classObj =
 					this.information.getElements(symbolName.replaceAll("/", ".").substring(1, symbolName.length() - 1),
@@ -214,10 +218,12 @@ public class TrainingLogParser extends LogParser {
 			if (classObj.isPresent()) {
 				((ClassObject) classObj.get()).addSymbol(referencedSymbol);
 				referencedSymbol.addReference(classObj.get());
+				classObj.get().addWhereDoesItComeFrom("Referenced by " + referencedSymbol + ".");
 			}
 		}
 
 		referencedSymbol.addWhereDoesItComeFrom(source);
+		referencedSymbol.addSource(trimmedMessage);
 		parentSymbol.addReference(referencedSymbol);
 
 		return referencedSymbol;
@@ -234,7 +240,9 @@ public class TrainingLogParser extends LogParser {
 	private void processSkipping(String message) {
 		String[] msg = message.trim().split("\\s+");
 		String className = msg[1].replace("/", ".").replace(":", "").trim();
-		information.addWarning(ElementFactory.getOrCreate(className, "Class", null), message, WarningType.CacheCreation);
+		final var aClass = ElementFactory.getOrCreate(className, "Class", null);
+		aClass.addSource(getSource());
+		information.addWarning(aClass, message, WarningType.CacheCreation);
 	}
 
 
@@ -244,8 +252,9 @@ public class TrainingLogParser extends LogParser {
 			if (className.contains(" ")) {
 				className = className.substring(0, className.indexOf(" "));
 			}
-			this.information.addWarning(ElementFactory.getOrCreate(className, "Class", null), trimmedMessage,
-					WarningType.CacheCreation);
+			final var aClass = ElementFactory.getOrCreate(className, "Class", null);
+			aClass.addSource(getSource());
+			this.information.addWarning(aClass, trimmedMessage, WarningType.CacheCreation);
 		} else {
 			//Very generic, but at least catch things
 			information.getWarnings().add(new Warning(trimmedMessage));
@@ -288,7 +297,9 @@ public class TrainingLogParser extends LogParser {
 		} else if (trimmedMessage.startsWith("JVM_StartThread() ignored:")) {
 //[info][aot       ] JVM_StartThread() ignored: java.lang.ref.Reference$ReferenceHandler
 			var className = trimmedMessage.substring(trimmedMessage.indexOf("ignored: ") + 9);
-			this.information.addWarning(ElementFactory.getOrCreate(className, "Class", null), trimmedMessage, WarningType.CacheCreation);
+			final var aClass = ElementFactory.getOrCreate(className, "Class", null);
+			aClass.addSource(getSource());
+			this.information.addWarning(aClass, trimmedMessage, WarningType.CacheCreation);
 		}
 	}
 

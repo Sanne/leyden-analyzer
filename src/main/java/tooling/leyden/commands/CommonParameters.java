@@ -50,8 +50,8 @@ public class CommonParameters {
 
 	@CommandLine.Option(names = {"--use", "-u"},
 			description = "What type of elements to use on this command: cached during AOT, not cached, or both. " +
-					"By default, only included in the AOT cache.",
-			defaultValue = "cached",
+					"By default, shows everything.",
+			defaultValue = "both",
 			arity = "0..1")
 	protected ElementsToUse use = ElementsToUse.cached;
 

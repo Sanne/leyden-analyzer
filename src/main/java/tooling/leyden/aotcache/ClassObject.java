@@ -181,8 +181,9 @@ public class ClassObject extends ReferencingElement {
 			sb.append(leftPadding + "This class doesn't seem to have training data. ");
 			sb.style(AttributedStyle.DEFAULT);
 			if (trained == 0) {
-				sb.append("If you think this class and its methods should be part of the training, make sure your " +
-						"training run use them.");
+				sb.append(AttributedString.NEWLINE);
+				sb.append(leftPadding + "If you think this class and its methods should be part of the training, " +
+						"make sure your training run use them.");
 			}
 		}
 

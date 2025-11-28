@@ -96,16 +96,6 @@ public abstract class Element {
 			sb.style(AttributedStyle.DEFAULT);
 			sb.append(" element.");
 		}
-		sb.append(AttributedString.NEWLINE);
-		sb.append(leftPadding + "This information comes from: ");
-		getSources().forEach(s -> {
-			sb.style(AttributedStyle.DEFAULT);
-			sb.append(AttributedString.NEWLINE);
-			sb.append(leftPadding);
-			sb.style(AttributedStyle.DEFAULT.italic());
-			sb.append("  > " + s);
-		});
-		sb.style(AttributedStyle.DEFAULT);
 		return sb.toAttributedString();
 	}
 
