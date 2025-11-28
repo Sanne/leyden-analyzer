@@ -6,6 +6,7 @@ import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.Information;
 import tooling.leyden.aotcache.MethodObject;
+import tooling.leyden.commands.autocomplete.WhichRun;
 
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,6 +49,14 @@ class ListCommand implements Runnable {
 			arity = "0..1")
 	protected Boolean showInnerClasses;
 
+	@CommandLine.Option(names = {"--loaded"},
+			description = {"Display classes that were loaded in a training run, a production run, both, or none.",
+					"This will restrict types to only classes, regardless of the rest of the arguments."},
+			defaultValue = "all",
+			arity = "0..1",
+			completionCandidates = WhichRun.class)
+	protected WhichRun.Types loaded;
+
 	public void run() {
 		final var counter = new AtomicInteger();
 		final var elements = findElements(counter);
@@ -62,13 +71,12 @@ class ListCommand implements Runnable {
 		switch (parameters.use) {
 			case both -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
 					parameters.excludePackageName, parameters.showArrays, true, parameters.types);
-			case notCached ->
-					elements = Information.getMyself().filterByParams(
-							parameters.packageName, parameters.excludePackageName, parameters.showArrays, parameters.types,
-							parent.getInformation().getExternalElements().entrySet().parallelStream()
-									.filter(keyElementEntry -> parameters.getName().isBlank()
-											|| keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
-									.map(keyElementEntry -> keyElementEntry.getValue()));
+			case notCached -> elements = Information.getMyself().filterByParams(
+					parameters.packageName, parameters.excludePackageName, parameters.showArrays, parameters.types,
+					parent.getInformation().getExternalElements().entrySet().parallelStream()
+							.filter(keyElementEntry -> parameters.getName().isBlank()
+									|| keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
+							.map(keyElementEntry -> keyElementEntry.getValue()));
 			default -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
 					parameters.excludePackageName, parameters.showArrays, false, parameters.types);
 		}
@@ -104,6 +112,20 @@ class ListCommand implements Runnable {
 							return true;
 						}
 					});
+		}
+
+		switch (loaded) {
+			case training -> elements =
+					elements.filter(e -> e.getType().equalsIgnoreCase("Class") &&
+							e.wasLoaded().equals(Element.WhichRun.Training));
+			case production -> elements = elements.filter(e -> e.getType().equalsIgnoreCase("Class") &&
+					e.wasLoaded().equals(Element.WhichRun.Production));
+			case both -> elements = elements.filter(e -> e.getType().equalsIgnoreCase("Class") &&
+					e.wasLoaded().equals(Element.WhichRun.Both));
+			case none -> elements = elements.filter(e -> e.getType().equalsIgnoreCase("Class") &&
+					e.wasLoaded().equals(Element.WhichRun.None));
+			default -> {
+			}
 		}
 
 		elements = elements.sorted(Comparator.comparing(Element::getKey).thenComparing(Element::getType));

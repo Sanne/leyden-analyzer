@@ -11,7 +11,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Supplier;
 
 /**
  * Elements that can be found on the Information.
@@ -20,6 +19,7 @@ public abstract class Element {
 
 	private String type;
 	private Boolean isHeapRoot = false;
+	private WhichRun loaded = WhichRun.None;
 	private List<String> whereDoesItComeFrom = new ArrayList<>();
 	private List<String> source = new ArrayList<>();
 	private Set<Element> whoReferencesMe = new HashSet<>();
@@ -96,6 +96,17 @@ public abstract class Element {
 			sb.style(AttributedStyle.DEFAULT);
 			sb.append(" element.");
 		}
+
+		if (wasLoaded() != WhichRun.None) {
+			sb.append(" This asset was loaded into memory for usage during");
+			switch (wasLoaded()) {
+				case Training -> sb.append(" training run");
+				case Production -> sb.append(" production run");
+				default -> sb.append(" both training and production runs");
+			}
+			sb.append(".");
+		}
+
 		return sb.toAttributedString();
 	}
 
@@ -147,6 +158,18 @@ public abstract class Element {
 		return this.source;
 	}
 
+	public WhichRun wasLoaded() {
+		return loaded;
+	}
+
+	public void setLoaded(WhichRun loaded) {
+		if ((loaded == WhichRun.Production && this.loaded == WhichRun.Training)
+				|| (this.loaded == WhichRun.Production && loaded == WhichRun.Training)) {
+			this.loaded = WhichRun.Both;
+		} else {
+			this.loaded = loaded;
+		}
+	}
 
 	public String getAddress() {
 		return address;
@@ -176,6 +199,7 @@ public abstract class Element {
 				sb.append("[Untrained]");
 			}
 		}
+
 		sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.YELLOW));
 		sb.append("[" + getType() + "] ");
 		sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.CYAN));
@@ -201,5 +225,9 @@ public abstract class Element {
 			return false;
 
 		return Objects.equals(getType(), element.getType()) && Objects.equals(getKey(), element.getKey());
+	}
+
+	public enum WhichRun {
+		None, Training, Production, Both
 	}
 }

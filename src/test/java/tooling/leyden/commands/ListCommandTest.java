@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import tooling.leyden.aotcache.ClassObject;
 import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.MethodObject;
+import tooling.leyden.commands.autocomplete.WhichRun;
 import tooling.leyden.commands.logparser.AOTMapParser;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -54,6 +55,7 @@ class ListCommandTest extends DefaultTest {
 		command.showInnerClasses = true;
 		command.run = false;
 		command.trained = false;
+		command.loaded = WhichRun.Types.all;
 		command.parameters = new CommonParameters();
 		assertEquals(21, command.findElements(new AtomicInteger()).count());
 
@@ -104,6 +106,7 @@ class ListCommandTest extends DefaultTest {
 		command.trained = false;
 		command.showLambdas = true;
 		command.showInnerClasses = true;
+		command.loaded = WhichRun.Types.all;
 		assertEquals(5, command.findElements(new AtomicInteger()).count());
 
 		command.showLambdas = false;

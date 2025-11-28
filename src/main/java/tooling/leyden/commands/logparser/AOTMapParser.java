@@ -590,6 +590,7 @@ public class AOTMapParser extends Parser {
 			String parent = identifier.substring(0, identifier.indexOf("$$"));
 			classObject.addReference(ElementFactory.getOrCreate(parent, "Class", null));
 		}
+		classObject.setLoaded(Element.WhichRun.Training);
 
 		return classObject;
 	}

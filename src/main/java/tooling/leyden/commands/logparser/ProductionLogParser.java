@@ -87,6 +87,7 @@ public class ProductionLogParser extends LogParser {
 				this.information.getStatistics().incrementValue("[LOG] Classes not loaded from AOT Cache");
 			}
 			e.addWhereDoesItComeFrom("Loaded from " + line.content().substring(line.content().indexOf("source: ")));
+			e.setLoaded(Element.WhichRun.Production);
 		}
 	}
 
