@@ -42,11 +42,11 @@ public class CommonParameters {
 			completionCandidates = Identifiers.class)
 	private String name;
 
-	@CommandLine.Option(names = {"--useArrays"},
+	@CommandLine.Option(names = {"--arrays"},
 			description = "Use array classes if true. True by default.",
 			defaultValue = "true",
 			arity = "0..1")
-	protected Boolean showArrays = true;
+	protected Boolean arrays = true;
 
 	@CommandLine.Option(names = {"--use", "-u"},
 			description = "What type of elements to use on this command: cached during AOT, not cached, or both. " +

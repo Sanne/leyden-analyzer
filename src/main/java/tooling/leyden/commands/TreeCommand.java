@@ -3,7 +3,6 @@ package tooling.leyden.commands;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
-import org.w3c.dom.Attr;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import tooling.leyden.aotcache.ClassObject;
@@ -87,15 +86,15 @@ class TreeCommand implements Runnable {
 
 		switch (parameters.use) {
 			case both -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-					parameters.excludePackageName, parameters.showArrays, true, "Class").toList();
+					parameters.excludePackageName, parameters.arrays, true, "Class").toList();
 			case notCached -> elements = Information.getMyself().filterByParams(
-					parameters.packageName, parameters.excludePackageName, parameters.showArrays,
+					parameters.packageName, parameters.excludePackageName, parameters.arrays,
 					new String[]{"Class"},
 					parent.getInformation().getExternalElements().entrySet().parallelStream()
 							.filter(keyElementEntry -> keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
 							.map(keyElementEntry -> keyElementEntry.getValue())).toList();
 			default -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-					parameters.excludePackageName, parameters.showArrays, false, "Class").toList();
+					parameters.excludePackageName, parameters.arrays, false, "Class").toList();
 		}
 
 		if (!elements.isEmpty()) {
@@ -240,7 +239,7 @@ class TreeCommand implements Runnable {
 
 	//Delegate on Information for filtering
 	private Stream<Element> filter(Stream<Element> elements) {
-		return Information.filterByParams(parameters.packageName, parameters.excludePackageName, parameters.showArrays,
+		return Information.filterByParams(parameters.packageName, parameters.excludePackageName, parameters.arrays,
 				parameters.types, elements);
 	}
 

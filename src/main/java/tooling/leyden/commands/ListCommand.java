@@ -37,25 +37,24 @@ class ListCommand implements Runnable {
 			arity = "0..1")
 	protected Boolean run;
 
-	@CommandLine.Option(names = {"--showLambdas"},
+	@CommandLine.Option(names = {"--lambdas"},
 			description = {"Display lambda classes."},
 			defaultValue = "false",
 			arity = "0..1")
-	protected Boolean showLambdas;
+	protected Boolean lambdas;
 
-	@CommandLine.Option(names = {"--showInnerClasses"},
+	@CommandLine.Option(names = {"--innerClasses"},
 			description = {"Display inner classes."},
 			defaultValue = "false",
 			arity = "0..1")
-	protected Boolean showInnerClasses;
+	protected Boolean innerClasses;
 
 	@CommandLine.Option(names = {"--loaded"},
 			description = {"Display classes that were loaded in a training run, a production run, both, or none.",
 					"This will restrict types to only classes, regardless of the rest of the arguments."},
 			defaultValue = "all",
-			arity = "0..1",
-			completionCandidates = WhichRun.class)
-	protected WhichRun.Types loaded;
+			arity = "0..1")
+	protected WhichRun loaded;
 
 	public void run() {
 		final var counter = new AtomicInteger();
@@ -70,15 +69,15 @@ class ListCommand implements Runnable {
 
 		switch (parameters.use) {
 			case both -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-					parameters.excludePackageName, parameters.showArrays, true, parameters.types);
+					parameters.excludePackageName, parameters.arrays, true, parameters.types);
 			case notCached -> elements = Information.getMyself().filterByParams(
-					parameters.packageName, parameters.excludePackageName, parameters.showArrays, parameters.types,
+					parameters.packageName, parameters.excludePackageName, parameters.arrays, parameters.types,
 					parent.getInformation().getExternalElements().entrySet().parallelStream()
 							.filter(keyElementEntry -> parameters.getName().isBlank()
 									|| keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
 							.map(keyElementEntry -> keyElementEntry.getValue()));
 			default -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-					parameters.excludePackageName, parameters.showArrays, false, parameters.types);
+					parameters.excludePackageName, parameters.arrays, false, parameters.types);
 		}
 
 
@@ -92,7 +91,7 @@ class ListCommand implements Runnable {
 					.filter(e -> ((MethodObject) e).getMethodCounters() != null);
 		}
 
-		if (!showLambdas) {
+		if (!lambdas) {
 			elements = elements
 					.filter(e -> {
 						if (e instanceof ClassObject classObject) {
@@ -103,7 +102,7 @@ class ListCommand implements Runnable {
 					});
 		}
 
-		if (!showInnerClasses) {
+		if (!innerClasses) {
 			elements = elements
 					.filter(e -> {
 						if (e instanceof ClassObject classObject) {

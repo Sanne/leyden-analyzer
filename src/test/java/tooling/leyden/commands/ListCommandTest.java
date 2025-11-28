@@ -3,13 +3,11 @@ package tooling.leyden.commands;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 import tooling.leyden.aotcache.ClassObject;
-import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.MethodObject;
 import tooling.leyden.commands.autocomplete.WhichRun;
 import tooling.leyden.commands.logparser.AOTMapParser;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -51,11 +49,11 @@ class ListCommandTest extends DefaultTest {
 
 		ListCommand command = new ListCommand();
 		command.parent = getDefaultCommand();
-		command.showLambdas = true;
-		command.showInnerClasses = true;
+		command.lambdas = true;
+		command.innerClasses = true;
 		command.run = false;
 		command.trained = false;
-		command.loaded = WhichRun.Types.all;
+		command.loaded = WhichRun.all;
 		command.parameters = new CommonParameters();
 		assertEquals(21, command.findElements(new AtomicInteger()).count());
 
@@ -104,15 +102,15 @@ class ListCommandTest extends DefaultTest {
 		command.parameters = new CommonParameters();
 		command.run = false;
 		command.trained = false;
-		command.showLambdas = true;
-		command.showInnerClasses = true;
-		command.loaded = WhichRun.Types.all;
+		command.lambdas = true;
+		command.innerClasses = true;
+		command.loaded = WhichRun.all;
 		assertEquals(5, command.findElements(new AtomicInteger()).count());
 
-		command.showLambdas = false;
+		command.lambdas = false;
 		assertEquals(3, command.findElements(new AtomicInteger()).count());
 
-		command.showInnerClasses = false;
+		command.innerClasses = false;
 		assertEquals(1, command.findElements(new AtomicInteger()).count());
 	}
 
