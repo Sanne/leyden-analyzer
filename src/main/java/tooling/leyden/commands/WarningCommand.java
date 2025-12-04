@@ -134,15 +134,14 @@ class WarningCommand implements Runnable {
 
 		parent.getInformation().getElements(null, null, excludedPackages, false, false, "Method")
 				.map(MethodObject.class::cast)
-				.filter(e -> e.getMethodCounters() != null)
-				.filter(e ->  e.getMethodTrainingData() == null || e.getCompileTrainingData().isEmpty())
+				.filter(e ->  e.getMethodCounters() != null && e.getCompileTrainingData().isEmpty())
 				.forEach(method -> {
 					final var classObject = method.getClassObject();
 					addToPackageList(classObject, packages);
 				});
 
-		String warningString = " methods that were called during training run but lack full training (don't have" +
-				" some of the TrainingData objects associated to them).";
+		String warningString = " methods that were called several times during training run but lack full training (don't have" +
+				" some of the CompileTrainingData objects associated to them).";
 		getTopPackages(packages, warningString, result, WarningType.MethodTraining);
 
 		return result;

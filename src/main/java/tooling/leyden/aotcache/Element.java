@@ -90,7 +90,8 @@ public abstract class Element {
 		}
 		sb.append(".");
 		if (isHeapRoot()) {
-			sb.append("This is a ");
+			sb.append(AttributedString.NEWLINE);
+			sb.append(leftPadding + "This is a ");
 			sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
 			sb.append("HEAP ROOT");
 			sb.style(AttributedStyle.DEFAULT);
@@ -98,12 +99,15 @@ public abstract class Element {
 		}
 
 		if (wasLoaded() != WhichRun.None) {
-			sb.append(" This asset was loaded into memory for usage during");
+			sb.append(AttributedString.NEWLINE);
+			sb.append(leftPadding + "This asset was loaded into memory for usage during");
+			sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
 			switch (wasLoaded()) {
 				case Training -> sb.append(" training run");
 				case Production -> sb.append(" production run");
 				default -> sb.append(" both training and production runs");
 			}
+			sb.style(AttributedStyle.DEFAULT);
 			sb.append(".");
 		}
 

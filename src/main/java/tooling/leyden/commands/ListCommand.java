@@ -31,12 +31,6 @@ class ListCommand implements Runnable {
 			arity = "0..1")
 	protected Boolean trained;
 
-	@CommandLine.Option(names = {"--run"},
-			description = {"Only displays methods that were run on the training run."},
-			defaultValue = "false",
-			arity = "0..1")
-	protected Boolean run;
-
 	@CommandLine.Option(names = {"--lambdas"},
 			description = {"Display lambda classes."},
 			defaultValue = "false",
@@ -83,12 +77,6 @@ class ListCommand implements Runnable {
 
 		if (trained) {
 			elements = elements.filter(e -> e.isTraineable() && e.isTrained());
-		}
-
-		if (run) {
-			elements = elements
-					.filter(e -> e.getType().equalsIgnoreCase("Method"))
-					.filter(e -> ((MethodObject) e).getMethodCounters() != null);
 		}
 
 		if (!lambdas) {

@@ -127,10 +127,14 @@ public class ClassObject extends ReferencingElement {
 		sb.append(leftPadding + "This class is ");
 		if (!Information.getMyself().cacheContains(this)) {
 			sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED));
-			sb.append("NOT ");
+			sb.append("NOT included");
+			sb.style(AttributedStyle.DEFAULT);
+		} else {
+			sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
+			sb.append("included");
 			sb.style(AttributedStyle.DEFAULT);
 		}
-		sb.append("included in the AOT cache.");
+		sb.append(" in the AOT cache.");
 
 		if (isClassLoader()) {
 			sb.append(AttributedString.NEWLINE);
@@ -140,7 +144,6 @@ public class ClassObject extends ReferencingElement {
 		}
 
 		int trained = 0;
-		int run = 0;
 		if (!this.getMethods().isEmpty()) {
 			sb.append(AttributedString.NEWLINE);
 			sb.append(leftPadding + "This class has ");
@@ -152,17 +155,10 @@ public class ClassObject extends ReferencingElement {
 			sb.append(", of which");
 
 			for (MethodObject method : this.getMethods()) {
-				if (method.getMethodCounters() != null) {
-					run++;
-				}
 				if (method.isTrained()) {
 					trained++;
 				}
 			}
-			sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
-			sb.append(" " + run);
-			sb.style(AttributedStyle.DEFAULT);
-			sb.append(" have been run and");
 			sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
 			sb.append(" " + trained);
 			sb.style(AttributedStyle.DEFAULT);
@@ -175,7 +171,7 @@ public class ClassObject extends ReferencingElement {
 			sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
 			sb.append("KlassTrainingData");
 			sb.style(AttributedStyle.DEFAULT);
-			sb.append(" associated to it.");
+			sb.append(" associated to it, which means it has profiling associated to its methods.");
 		} else {
 			sb.style(AttributedStyle.DEFAULT.bold());
 			sb.append(leftPadding + "This class doesn't seem to have training data. ");
@@ -183,7 +179,7 @@ public class ClassObject extends ReferencingElement {
 			if (trained == 0) {
 				sb.append(AttributedString.NEWLINE);
 				sb.append(leftPadding + "If you think this class and its methods should be part of the training, " +
-						"make sure your training run use them.");
+						"make sure your training run use them several times.");
 			}
 		}
 

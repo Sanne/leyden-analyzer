@@ -52,46 +52,42 @@ class DescribeCommand implements Runnable {
 		AttributedStringBuilder sb = new AttributedStringBuilder();
 		if (!elements.isEmpty()) {
 			elements.forEach(e -> {
-				var leftPadding = "|  ";
+				var leftPadding = "  ";
 				sb.append("-----");
 				sb.append(AttributedString.NEWLINE);
 				sb.append(e.getDescription(leftPadding));
 				sb.append(AttributedString.NEWLINE);
 				if (verbose) {
+					sb.append(AttributedString.NEWLINE);
+					sb.append(leftPadding + "References: ");
+					var customLeftPadding = "  " + leftPadding;
 					if (e instanceof ReferencingElement re) {
 						if (!re.getReferences().isEmpty()) {
-							sb.append(leftPadding + "Elements referenced from this element: ");
 							sb.append(AttributedString.NEWLINE);
-							sb.append(leftPadding + "  _____");
+							sb.append(customLeftPadding + "Elements referenced from this element: ");
 							sb.append(AttributedString.NEWLINE);
 							re.getReferences().forEach(refer -> {
-								sb.append(leftPadding + "  | ");
+								sb.append(customLeftPadding + "   ");
 								sb.append(refer.toAttributedString());
 								sb.append(AttributedString.NEWLINE);
 							});
-							sb.append(leftPadding + "  _____");
-							sb.append(AttributedString.NEWLINE);
 						} else {
-							sb.append(leftPadding + "There are no elements referenced from this element.");
+							sb.append(customLeftPadding + "There are no elements referenced from this element.");
 							sb.append(AttributedString.NEWLINE);
 						}
 					}
 
 					var referring = getElementsReferencingThisOne(e);
 					if (!referring.isEmpty()) {
-						sb.append(leftPadding + "Elements that refer to this element: ");
-						sb.append(AttributedString.NEWLINE);
-						sb.append(leftPadding + "  _____");
+						sb.append(customLeftPadding + "Elements that refer to this element: ");
 						sb.append(AttributedString.NEWLINE);
 						referring.forEach(refer -> {
-							sb.append(leftPadding + "  | ");
+							sb.append(customLeftPadding + "   ");
 							sb.append(refer.toAttributedString());
 							sb.append(AttributedString.NEWLINE);
 						});
-						sb.append(leftPadding + "  _____");
-						sb.append(AttributedString.NEWLINE);
 					} else {
-						sb.append(leftPadding + "There are no other elements of the cache that refer " +
+						sb.append(customLeftPadding + "There are no other elements of the cache that refer " +
 								"to this element.");
 						sb.append(AttributedString.NEWLINE);
 					}

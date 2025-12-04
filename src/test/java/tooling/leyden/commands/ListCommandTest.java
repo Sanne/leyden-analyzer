@@ -51,7 +51,6 @@ class ListCommandTest extends DefaultTest {
 		command.parent = getDefaultCommand();
 		command.lambdas = true;
 		command.innerClasses = true;
-		command.run = false;
 		command.trained = false;
 		command.loaded = WhichRun.all;
 		command.parameters = new CommonParameters();
@@ -67,21 +66,15 @@ class ListCommandTest extends DefaultTest {
 		assertTrue(command.findElements(count).allMatch(e -> e instanceof ClassObject || e instanceof MethodObject));
 		assertEquals(6, count.get());
 
-		command.run = true;
-		command.parameters.types = null;
+		command.parameters.types = new String[]{"Method"};
 		count = new AtomicInteger();
 		assertTrue(command.findElements(count).allMatch(e -> e.isTraineable()));
-		assertEquals(2, count.get());
+		assertEquals(4, count.get());
 
 		command.trained = true;
 		count = new AtomicInteger();
 		assertTrue(command.findElements(count).allMatch(e -> e.isTrained()));
 		assertEquals(1, count.get());
-
-		command.run = false;
-		count = new AtomicInteger();
-		assertTrue(command.findElements(count).allMatch(e -> e.isTrained()));
-		assertEquals(2, count.get());
 	}
 
 	@Test
@@ -100,7 +93,6 @@ class ListCommandTest extends DefaultTest {
 		ListCommand command = new ListCommand();
 		command.parent = getDefaultCommand();
 		command.parameters = new CommonParameters();
-		command.run = false;
 		command.trained = false;
 		command.lambdas = true;
 		command.innerClasses = true;

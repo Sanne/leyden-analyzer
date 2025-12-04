@@ -47,19 +47,6 @@ public class ReferencingElement extends Element {
 		}
 	}
 
-	@Override
-	public AttributedString getDescription(String leftPadding) {
-
-		AttributedStringBuilder sb = new AttributedStringBuilder();
-		sb.append(super.getDescription(leftPadding));
-
-		if (!this.getReferences().isEmpty()) {
-			sb.append('\n' + leftPadding + "This element refers to " + getReferences().size() + " other elements.");
-		}
-
-		return sb.toAttributedString();
-	}
-
 	public void resolvePlaceholders() {
 		List<Element> refs = new ArrayList<>();
 		refs.addAll(references);
