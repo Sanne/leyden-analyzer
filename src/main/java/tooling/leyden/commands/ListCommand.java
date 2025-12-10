@@ -103,8 +103,9 @@ class ListCommand implements Runnable {
 
 		switch (loaded) {
 			case training -> elements =
-					elements.filter(e -> e.getType().equalsIgnoreCase("Class") &&
-							e.wasLoaded().equals(Element.WhichRun.Training));
+					elements.filter(e -> e.getType().equalsIgnoreCase("Class")
+							&& e.wasLoaded().equals(Element.WhichRun.Training)
+							&& !((ClassObject)e).isArray());
 			case production -> elements = elements.filter(e -> e.getType().equalsIgnoreCase("Class") &&
 					e.wasLoaded().equals(Element.WhichRun.Production));
 			case both -> elements = elements.filter(e -> e.getType().equalsIgnoreCase("Class") &&
