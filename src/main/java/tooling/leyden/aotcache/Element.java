@@ -170,7 +170,7 @@ public abstract class Element {
 		if ((loaded == WhichRun.Production && this.loaded == WhichRun.Training)
 				|| (this.loaded == WhichRun.Production && loaded == WhichRun.Training)) {
 			this.loaded = WhichRun.Both;
-		} else {
+		} else if (this.loaded != WhichRun.Both){
 			this.loaded = loaded;
 		}
 	}

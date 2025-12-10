@@ -3,7 +3,9 @@ package tooling.leyden.commands.logparser;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import tooling.leyden.aotcache.BasicObject;
 import tooling.leyden.aotcache.Element;
+import tooling.leyden.aotcache.ElementFactory;
 import tooling.leyden.aotcache.Information;
 import tooling.leyden.aotcache.WarningType;
 import tooling.leyden.commands.DefaultTest;
@@ -145,6 +147,28 @@ class ProductionLogParserTest extends DefaultTest {
 				.getValue("[LOG] [CodeCache] Loaded C2 Blobs"));
 		assertEquals("598432 bytes", Information.getMyself().getStatistics()
 				.getValue("[LOG] [CodeCache] AOT code cache size"));
+	}
+
+	@Test
+	void whereWereYouLoadedFrom() {
+		Element e = ElementFactory.getOrCreate("org.cutecats.Test", "Class", null);
+
+		e.setLoaded(Element.WhichRun.Training);
+		assertEquals(Element.WhichRun.Training, e.wasLoaded());
+		e.setLoaded(Element.WhichRun.Production);
+		assertEquals(Element.WhichRun.Both, e.wasLoaded());
+
+		e = ElementFactory.getOrCreate("org.cutecats.Test2", "Class", null);
+
+		e.setLoaded(Element.WhichRun.Production);
+		assertEquals(Element.WhichRun.Production, e.wasLoaded());
+		e.setLoaded(Element.WhichRun.Training);
+		assertEquals(Element.WhichRun.Both, e.wasLoaded());
+		e.setLoaded(Element.WhichRun.Training);
+		assertEquals(Element.WhichRun.Both, e.wasLoaded());
+		e.setLoaded(Element.WhichRun.Production);
+		assertEquals(Element.WhichRun.Both, e.wasLoaded());
+
 	}
 
 }
