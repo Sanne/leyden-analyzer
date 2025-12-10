@@ -27,6 +27,11 @@ public class ClassObject extends ReferencingElement {
 		this.setName(identifier.substring(identifier.lastIndexOf(".") + 1));
 		if (identifier.indexOf(".") > 0) {
 			this.setPackageName(identifier.substring(0, identifier.lastIndexOf(".")));
+		} else if (identifier.startsWith("[")) {
+			while (identifier.startsWith("[")) {
+				arrayPrefix += "[";
+				identifier = identifier.substring(1);
+			}
 		}
 
 		if (this.getPackageName().equalsIgnoreCase("jdk.internal.loader")
@@ -40,7 +45,7 @@ public class ClassObject extends ReferencingElement {
 	}
 
 	public String getKey() {
-		return arrayPrefix + getPackageName() + "." + getName();
+		return arrayPrefix + (getPackageName().isBlank() ? "" : getPackageName() + ".") + getName();
 	}
 
 	public String getName() {
