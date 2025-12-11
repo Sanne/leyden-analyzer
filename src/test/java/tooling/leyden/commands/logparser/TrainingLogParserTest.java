@@ -34,7 +34,7 @@ class TrainingLogParserTest extends DefaultTest {
 		parser.accept("[warning][aot] Skipping org/apache/logging/log4j/core/async/AsyncLoggerContext: Failed " +
 				"verification");
 		parser.accept("[warning][aot] Skipping org/apache/logging/slf4j/Log4jLoggerFactory$$Lambda+0x800000258: " +
-						"nest_host class org/apache/logging/slf4j/Log4jLoggerFactory is excluded");
+				"nest_host class org/apache/logging/slf4j/Log4jLoggerFactory is excluded");
 		parser.accept("[warning][aot] Skipping jdk/proxy1/$Proxy29: Unsupported location");
 		parser.accept("[warning][aot] Skipping org/slf4j/ILoggerFactory: Old class has been linked");
 		parser.accept("[warning][aot] Skipping jdk/internal/event/SecurityProviderServiceEvent: JFR event class");
@@ -215,5 +215,19 @@ class TrainingLogParserTest extends DefaultTest {
 		assertEquals(1, classObj.getSymbols().size());
 		parentSymbol = classObj.getSymbols().getFirst();
 		assertEquals(classObj.getKey(), parentSymbol.getKey().replaceAll("/", "."));
+	}
+
+
+	@Test
+	void classCreationFromSymbol() {
+		parser.accept("[trace][aot,resolve] reverted field  CP entry [157]: io/quarkus/vertx/http/runtime/VertxHttpRecorder => io/quarkus/dev/spi/DevModeType.REMOTE_SERVER_SIDE:Lio/quarkus/dev/spi/DevModeType;");
+
+		assertTrue(Information.getMyself().getElements("io.quarkus.vertx.http.runtime" +
+						".VertxHttpRecorder", null, null, true, true, "Class")
+				.findAny().isPresent());
+		assertTrue(Information.getMyself().getElements("io.quarkus.dev.spi.DevModeType", null, null, true, true,
+				"Class").findAny().isPresent());
+		assertEquals(2, Information.getMyself().getElements(null, null, null, true, true, "Class")
+				.count());
 	}
 }

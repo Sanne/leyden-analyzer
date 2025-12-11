@@ -190,7 +190,7 @@ public class TrainingLogParser extends LogParser {
 					"Class").findAny();
 
 			classObject = (ClassObject) classObj
-					.orElse(ElementFactory.getOrCreate(className, "Class", null));
+					.orElse(ElementFactory.getOrCreate(className.substring(1, className.length() - 1), "Class", null));
 		} else if (className.contains(".") && !className.contains("(")) {
 			classObject = (ClassObject) ElementFactory.getOrCreate(className, "Class", null);
 		} else {
