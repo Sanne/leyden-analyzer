@@ -216,6 +216,52 @@ class InfoCommand implements Runnable {
 			}
 		}
 
+		var aotCodeEntries = (Double) stats.getValue("[CodeCache] AOT Code Entries", -1.0);
+		if (aotCodeEntries > 0) {
+
+			(new AttributedString("Code Cache: ",
+					AttributedStyle.DEFAULT)).println(parent.getTerminal());
+
+			printPercentage("  -> None: ", aotCodeEntries,
+					percentFormat, intFormat, greenFormat,  (Double) stats.getValue("[CodeCache] None", 0.0));
+			printPercentage("  -> Adapter: ", aotCodeEntries,
+					percentFormat, intFormat, greenFormat,  (Double) stats.getValue("[CodeCache] Adapter", 0.0));
+			printPercentage("  -> Stub: ", aotCodeEntries,
+					percentFormat, intFormat, greenFormat,  (Double) stats.getValue("[CodeCache] Stub", 0.0));
+			printPercentage("  -> SharedBlob: ", aotCodeEntries,
+					percentFormat, intFormat, greenFormat,  (Double) stats.getValue("[CodeCache] SharedBlob", 0.0));
+			printPercentage("  -> C1Blob: ", aotCodeEntries,
+					percentFormat, intFormat, greenFormat,  (Double) stats.getValue("[CodeCache] C1Blob", 0.0));
+			printPercentage("  -> C2Blob: ", aotCodeEntries,
+					percentFormat, intFormat, greenFormat,  (Double) stats.getValue("[CodeCache] C2Blob", 0.0));
+			var nmethod = (Double) stats.getValue("[CodeCache] Nmethod", 0.0);
+			printPercentage("  -> Nmethod: ", aotCodeEntries, percentFormat, intFormat, greenFormat,  nmethod);
+			if (nmethod > 0) {
+				printPercentage("     - Tier 0: ", nmethod,
+						percentFormat, intFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 0", 0.0));
+				printPercentage("     - Tier 1: ", nmethod,
+						percentFormat, intFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 1", 0.0));
+				printPercentage("     - Tier 2: ", nmethod,
+						percentFormat, intFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 2", 0.0));
+				printPercentage("     - Tier 3: ", nmethod,
+						percentFormat, intFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 3", 0.0));
+				printPercentage("     - Tier 4: ", nmethod,
+						percentFormat, intFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 4", 0.0));
+				printPercentage("     - Tier 5: ", nmethod,
+						percentFormat, intFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 5", 0.0));
+			}
+			(new AttributedString("  -> Entries: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
+			(new AttributedString(intFormat.format(aotCodeEntries), greenFormat)).println(parent.getTerminal());
+
+			(new AttributedString("  -> Cache Size: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
+			(new AttributedString(
+					stats.getValue("[CodeCache] Cache Size", "unknown").toString(), greenFormat))
+					.println(parent.getTerminal());
+		}
+
+
+
+
 
 //		(new AttributedString("Symbol: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
 //		(new AttributedString(intFormat.format(
