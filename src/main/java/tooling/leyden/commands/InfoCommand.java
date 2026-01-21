@@ -14,11 +14,7 @@ import tooling.leyden.commands.autocomplete.InfoCommandTypes;
 
 import java.lang.reflect.Method;
 import java.text.NumberFormat;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -210,7 +206,9 @@ class InfoCommand implements Runnable {
 
 			(new AttributedString("  -> CompileTrainingData: ",
 					AttributedStyle.DEFAULT)).println(parent.getTerminal());
-			for (Integer level : compilationLevels.keySet()) {
+			var levels = compilationLevels.keySet().stream().toList();
+			Collections.sort(levels);
+			for (Integer level : levels) {
 				printPercentage("      -> Level " + level + ": ", methodsSize, percentFormat, intFormat,
 						greenFormat, Double.valueOf(compilationLevels.get(level)));
 			}
