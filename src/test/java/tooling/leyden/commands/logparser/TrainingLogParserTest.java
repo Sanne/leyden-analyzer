@@ -11,6 +11,9 @@ import tooling.leyden.aotcache.WarningType;
 import tooling.leyden.commands.DefaultTest;
 import tooling.leyden.commands.LoadFileCommand;
 
+import java.io.BufferedReader;
+import java.io.StringReader;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -229,5 +232,50 @@ class TrainingLogParserTest extends DefaultTest {
 				"Class").findAny().isPresent());
 		assertEquals(2, Information.getMyself().getElements(null, null, null, true, true, "Class")
 				.count());
+	}
+
+
+	@Test
+	void codeCacheSummary() {
+		String log =
+				"""
+[debug  ][aot,codecache,exit]   None: total=0
+[debug  ][aot,codecache,exit]   Adapter: total=728
+[debug  ][aot,codecache,exit]   Stub: total=10
+[debug  ][aot,codecache,exit]   SharedBlob: total=1
+[debug  ][aot,codecache,exit]   C1Blob: total=2
+[debug  ][aot,codecache,exit]   C2Blob: total=3
+[debug  ][aot,codecache,exit]   Nmethod: total=9142
+[debug  ][aot,codecache,exit]     Tier 0: total=5
+[debug  ][aot,codecache,exit]     Tier 1: total=1251
+[debug  ][aot,codecache,exit]     Tier 2: total=3379
+[debug  ][aot,codecache,exit]     Tier 3: total=4
+[debug  ][aot,codecache,exit]     Tier 4: total=2256
+[debug  ][aot,codecache,exit]     Tier 5: total=2257
+[debug  ][aot,codecache,exit]   AOT code cache size: 31332312 bytes, max entry's size: 136328 bytes
+[info   ][aot,codecache,exit] Wrote 9870 AOT code entries to AOT Code Cache
+			""";
+
+		BufferedReader reader = new BufferedReader(new StringReader(log));
+		reader.lines().forEach(parser::accept);
+		parser.postProcessing();
+
+		var statistics = Information.getMyself().getStatistics();
+
+		assertEquals(0.0, statistics.getValue("[CodeCache] None"));
+		assertEquals(728.0, statistics.getValue("[CodeCache] Adapter"));
+		assertEquals(10.0, statistics.getValue("[CodeCache] Stub"));
+		assertEquals(1.0, statistics.getValue("[CodeCache] SharedBlob"));
+		assertEquals(2.0, statistics.getValue("[CodeCache] C1Blob"));
+		assertEquals(3.0, statistics.getValue("[CodeCache] C2Blob"));
+		assertEquals(9142.0, statistics.getValue("[CodeCache] Nmethod"));
+		assertEquals(5.0, statistics.getValue("[CodeCache] Nmethod Tier 0"));
+		assertEquals(1251.0, statistics.getValue("[CodeCache] Nmethod Tier 1"));
+		assertEquals(3379.0, statistics.getValue("[CodeCache] Nmethod Tier 2"));
+		assertEquals(4.0, statistics.getValue("[CodeCache] Nmethod Tier 3"));
+		assertEquals(2256.0, statistics.getValue("[CodeCache] Nmethod Tier 4"));
+		assertEquals(2257.0, statistics.getValue("[CodeCache] Nmethod Tier 5"));
+		assertEquals("31332312 bytes, max entry's size: 136328 bytes", statistics.getValue("[CodeCache] Cache Size"));
+		assertEquals(9870.0, statistics.getValue("[CodeCache] AOT Code Entries"));
 	}
 }
