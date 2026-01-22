@@ -172,7 +172,12 @@ class InfoCommand implements Runnable {
 						.count();
 
 		if (methodCounters < 1) {
-			(new AttributedString("Method training information is missing. Please, load an aot map.", redFormat))
+			(new AttributedString(
+					"Method training information is missing. " +
+							AttributedString.NEWLINE +
+							"If you are using JDK26+, please load an aot map. " +
+							AttributedString.NEWLINE +
+							"If you are using JDK25, please upgrade your JDK to get this information.", redFormat))
 					.println(parent.getTerminal());
 		} else {
 			Long methodData =
