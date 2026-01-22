@@ -206,9 +206,7 @@ class InfoCommand implements Runnable {
 
 			(new AttributedString("  -> CompileTrainingData: ",
 					AttributedStyle.DEFAULT)).println(parent.getTerminal());
-			var levels = compilationLevels.keySet().stream().toList();
-			Collections.sort(levels);
-			for (Integer level : levels) {
+			for (Integer level : compilationLevels.keySet().stream().sorted().toList()) {
 				printPercentage("      -> Level " + level + ": ", methodsSize, percentFormat, intFormat,
 						greenFormat, Double.valueOf(compilationLevels.get(level)));
 			}
