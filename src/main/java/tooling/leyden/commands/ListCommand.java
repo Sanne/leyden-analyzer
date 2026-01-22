@@ -2,10 +2,7 @@ package tooling.leyden.commands;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import tooling.leyden.aotcache.ClassObject;
-import tooling.leyden.aotcache.Element;
-import tooling.leyden.aotcache.Information;
-import tooling.leyden.aotcache.MethodObject;
+import tooling.leyden.aotcache.*;
 import tooling.leyden.commands.autocomplete.WhichRun;
 
 import java.util.Comparator;
@@ -49,6 +46,11 @@ class ListCommand implements Runnable {
 			defaultValue = "all",
 			arity = "0..1")
 	protected WhichRun loaded;
+
+	@CommandLine.Option(names = {"--referencing"},
+			description = {"Display elements which reference the element defined by this id."},
+			arity = "0..1")
+	protected String referencing;
 
 	public void run() {
 		final var counter = new AtomicInteger();
@@ -99,6 +101,17 @@ class ListCommand implements Runnable {
 							return true;
 						}
 					});
+		}
+
+		if (referencing != null) {
+			elements = elements.filter(e -> {
+				if (e instanceof ReferencingElement re) {
+					return re.getReferences().stream().anyMatch(
+							ref -> ref.getKey().equalsIgnoreCase(referencing));
+				}
+
+				return false;
+			});
 		}
 
 		switch (loaded) {
