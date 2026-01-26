@@ -132,4 +132,38 @@ class ListCommandTest extends DefaultTest {
 		assertEquals(1, command.findElements(new AtomicInteger()).count());
 	}
 
+
+	@Test
+	void filterInstanceOf() {
+
+		final var loadFile = new LoadFileCommand();
+		loadFile.setParent(getDefaultCommand());
+		AOTMapParser aotCacheParser = new AOTMapParser(loadFile);
+
+		aotCacheParser.accept("0x00000008007f4648: @@ Class             512 java.lang.String");
+		aotCacheParser.accept("0x00000008007f5a48: @@ Class             776 java.lang.Class");
+		aotCacheParser.accept("0x000000080081b748: @@ Class             648 java.lang.Integer");
+		aotCacheParser.accept("0x00000000ffdf4f38: @@ Object (0xffdf4f38) java.lang.Class Ljava/util/ArrayList; (aot-inited)");
+		aotCacheParser.accept("0x00000000ffe5d0a0: @@ Object (0xffe5d0a0) java.lang.Integer");
+		aotCacheParser.accept("0x00000000ffd0a4c8: @@ Object (0xffd0a4c8) java.lang.String \"| resolve\"");
+
+		ListCommand command = new ListCommand();
+		command.parent = getDefaultCommand();
+		command.parameters = new CommonParameters();
+		command.parameters.setTypes(new String[]{"Object"});
+		assertEquals(3, command.findElements(new AtomicInteger()).count());
+
+		command.parameters.instanceOf = "java.lang.Class";
+		assertEquals(1, command.findElements(new AtomicInteger()).count());
+
+		command.parameters.instanceOf = "java.lang.String";
+		assertEquals(1, command.findElements(new AtomicInteger()).count());
+
+		command.parameters.instanceOf = "java.lang.Integer";
+		assertEquals(1, command.findElements(new AtomicInteger()).count());
+
+		command.parameters.instanceOf = "java.util.ArrayList";
+		assertEquals(0, command.findElements(new AtomicInteger()).count());
+	}
+
 }

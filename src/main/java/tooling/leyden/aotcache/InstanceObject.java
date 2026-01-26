@@ -6,6 +6,7 @@ import org.jline.utils.AttributedStyle;
 
 public class InstanceObject extends ReferencingElement{
     private Boolean isAOTinited = false;
+    private ClassObject instanceOf;
 
     public InstanceObject(String identifier) {
         super(identifier, "Object");
@@ -45,4 +46,12 @@ public class InstanceObject extends ReferencingElement{
         return sb.toAttributedString();
     }
 
+    public ClassObject getInstanceOf() {
+        return instanceOf;
+    }
+
+    public void setInstanceOf(ClassObject classObject) {
+        this.instanceOf = classObject;
+        addReference(classObject);
+    }
 }

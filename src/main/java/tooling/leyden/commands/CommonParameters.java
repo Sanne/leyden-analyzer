@@ -89,6 +89,12 @@ public class CommonParameters {
 			completionCandidates = Identifiers.class)
 	protected String referencing;
 
+	@CommandLine.Option(names = {"--instanceOf"},
+			description = {"Display object instances from this Java Class."},
+			arity = "0..1",
+			completionCandidates = Identifiers.class)
+	protected String instanceOf;
+
 	@CommandLine.Option(names = {"--trained"},
 			description = {"Only displays elements with training information.",
 					"This may restrict the types of elements shown, along with what was passed as parameters."},
@@ -206,5 +212,9 @@ public class CommonParameters {
 
 	public void setShowAOTInited(Boolean showAOTInited) {
 		this.showAOTInited = showAOTInited;
+	}
+
+	public String getInstanceOf() {
+		return instanceOf;
 	}
 }

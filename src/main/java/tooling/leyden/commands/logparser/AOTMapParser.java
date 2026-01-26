@@ -364,21 +364,17 @@ public class AOTMapParser extends Parser {
 
 		//Link to corresponding assets:
 		final var className = contentParts[0];
-		if (!identifier.contains(" ")) {
+		if (!identifier.contains(" ") || className.equalsIgnoreCase("java.lang.String")) {
 			//0x00000007ffd66460: @@ Object (0xfffacc8c) jdk.internal.misc.Unsafe
-			this.information.getElements(className, null, null, true, true,
-					"Class").forEach(element::addReference);
-		} else if (className.equalsIgnoreCase("java.lang.String")) {
 			//0x00000007ffc90208: @@ Object (0xfff92041) java.lang.String "javax.crypto.spec.SecretKeySpec"
-			//Add the java.lang.String class itself... ignore the String
-			this.information.getElements(className, null, null, true, true,
-					"Class").forEach(element::addReference);
+			this.information.getElements(className, null, null, null, true, "Class")
+					.findAny().ifPresent(c -> element.setInstanceOf((ClassObject)c));
 		} else if (className.equalsIgnoreCase("java.lang.Class")) {
 			//0x00000007ffd02620: @@ Object (0xfffa04c4) java.lang.Class Ljava/lang/ProcessEnvironment;
 			//0x00000007ffd026c0: @@ Object (0xfffa04d8) java.lang.Class Ljava/lang/invoke/LambdaForm$DMH+0x800000073; (aot-inited)
 			//0x00000007ffd02b10: @@ Object (0xfffa0562) java.lang.Class J
-			this.information.getElements("java.lang.Class", null, null, true, true,
-					"Class").forEach(element::addReference);
+			this.information.getElements(className, null, null, null, true, "Class")
+					.findAny().ifPresent(c -> element.setInstanceOf((ClassObject)c));
 			var targetClass = contentParts[1];
 			if (contentParts[1].contains(";")) {
 				//Remove (aot-inited) String

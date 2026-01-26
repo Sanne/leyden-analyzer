@@ -339,7 +339,16 @@ public class Information {
                     return re.getReferences().stream().anyMatch(
                             ref -> ref.getKey().equalsIgnoreCase(parameters.getReferencing()));
                 }
+                return false;
+            });
+        }
 
+        if (parameters.getInstanceOf() != null) {
+            result = result.filter(e -> {
+                if (e instanceof InstanceObject io) {
+                    return io.getInstanceOf() != null &&
+                            io.getInstanceOf().getKey().equalsIgnoreCase(parameters.getInstanceOf());
+                }
                 return false;
             });
         }
