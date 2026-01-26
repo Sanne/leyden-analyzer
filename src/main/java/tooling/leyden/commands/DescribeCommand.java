@@ -38,15 +38,13 @@ class DescribeCommand implements Runnable {
 		switch (parameters.use) {
 			case notCached ->
 					elements = Information.getMyself().filterByParams(
-							parameters.packageName, parameters.excludePackageName, parameters.arrays, parameters.types,
+							parameters,
 							parent.getInformation().getExternalElements().entrySet().parallelStream()
 									.filter(keyElementEntry -> parameters.getName().isBlank()
 											|| keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
 									.map(keyElementEntry -> keyElementEntry.getValue())).toList();
-			case cached -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-					parameters.excludePackageName, parameters.arrays, false, parameters.types).toList();
-			default -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-					parameters.excludePackageName, parameters.arrays, true, parameters.types).toList();
+			case cached -> elements = parent.getInformation().getElements(parameters, false).toList();
+			default -> elements = parent.getInformation().getElements(parameters, true).toList();
 		}
 
 		AttributedStringBuilder sb = new AttributedStringBuilder();

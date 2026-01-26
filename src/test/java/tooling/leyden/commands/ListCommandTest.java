@@ -49,11 +49,11 @@ class ListCommandTest extends DefaultTest {
 
 		ListCommand command = new ListCommand();
 		command.parent = getDefaultCommand();
-		command.lambdas = true;
-		command.innerClasses = true;
-		command.trained = false;
-		command.loaded = WhichRun.all;
 		command.parameters = new CommonParameters();
+		command.parameters.lambdas = true;
+		command.parameters.innerClasses = true;
+		command.parameters.trained = false;
+		command.parameters.loaded = WhichRun.all;
 		assertEquals(21, command.findElements(new AtomicInteger()).count());
 
 		var count = new AtomicInteger();
@@ -71,7 +71,7 @@ class ListCommandTest extends DefaultTest {
 		assertTrue(command.findElements(count).allMatch(e -> e.isTraineable()));
 		assertEquals(4, count.get());
 
-		command.trained = true;
+		command.parameters.trained = true;
 		count = new AtomicInteger();
 		assertTrue(command.findElements(count).allMatch(e -> e.isTrained()));
 		assertEquals(1, count.get());
@@ -93,16 +93,16 @@ class ListCommandTest extends DefaultTest {
 		ListCommand command = new ListCommand();
 		command.parent = getDefaultCommand();
 		command.parameters = new CommonParameters();
-		command.trained = false;
-		command.lambdas = true;
-		command.innerClasses = true;
-		command.loaded = WhichRun.all;
+		command.parameters.trained = false;
+		command.parameters.lambdas = true;
+		command.parameters.innerClasses = true;
+		command.parameters.loaded = WhichRun.all;
 		assertEquals(5, command.findElements(new AtomicInteger()).count());
 
-		command.lambdas = false;
+		command.parameters.lambdas = false;
 		assertEquals(3, command.findElements(new AtomicInteger()).count());
 
-		command.innerClasses = false;
+		command.parameters.innerClasses = false;
 		assertEquals(1, command.findElements(new AtomicInteger()).count());
 	}
 

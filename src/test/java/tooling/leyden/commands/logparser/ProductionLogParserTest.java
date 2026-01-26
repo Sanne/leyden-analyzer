@@ -90,9 +90,9 @@ class ProductionLogParserTest extends DefaultTest {
 		final int classes = Integer.parseInt(Information.getMyself().getStatistics().getValue("[LOG] Classes loaded from AOT Cache").toString());
 		final int lambdas = Integer.parseInt(Information.getMyself().getStatistics().getValue("[LOG] Lambda Methods loaded from AOT Cache").toString());
 
-		assertEquals(Information.getMyself().getExternalElements().size(), extClasses);
-		assertEquals(Information.getMyself().getElements(null, null, null, true, false, "Class").count(), classes);
-		assertEquals(Information.getMyself().getElements(null, null, null, true, true, "Class").count(), extClasses + classes);
+		assertEquals(extClasses, Information.getMyself().getExternalElements().size());
+		assertEquals(classes, Information.getMyself().getElements(null, null, null, true, false, "Class").count());
+		assertEquals(extClasses + classes, Information.getMyself().getElements(null, null, null, true, true, "Class").count());
 
 		assertEquals(8, extClasses);
 		assertEquals(6, extLambdas);

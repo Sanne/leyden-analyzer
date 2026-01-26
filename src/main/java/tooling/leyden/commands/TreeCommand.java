@@ -85,16 +85,15 @@ class TreeCommand implements Runnable {
 		List<Element> elements;
 
 		switch (parameters.use) {
-			case both -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-					parameters.excludePackageName, parameters.arrays, true, "Class").toList();
+			case both -> elements = parent.getInformation().getElements(parameters, true).toList();
 			case notCached -> elements = Information.getMyself().filterByParams(
 					parameters.packageName, parameters.excludePackageName, parameters.arrays,
 					new String[]{"Class"},
+					parameters.isHeapRoot,
 					parent.getInformation().getExternalElements().entrySet().parallelStream()
 							.filter(keyElementEntry -> keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
 							.map(keyElementEntry -> keyElementEntry.getValue())).toList();
-			default -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-					parameters.excludePackageName, parameters.arrays, false, "Class").toList();
+			default -> elements = parent.getInformation().getElements(parameters, false).toList();
 		}
 
 		if (!elements.isEmpty()) {
@@ -240,7 +239,7 @@ class TreeCommand implements Runnable {
 	//Delegate on Information for filtering
 	private Stream<Element> filter(Stream<Element> elements) {
 		return Information.filterByParams(parameters.packageName, parameters.excludePackageName, parameters.arrays,
-				parameters.types, elements);
+				parameters.types, parameters.isHeapRoot, elements);
 	}
 
 }

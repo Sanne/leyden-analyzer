@@ -1,10 +1,11 @@
 package tooling.leyden.aotcache;
 
+import tooling.leyden.commands.CommonParameters;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -14,266 +15,362 @@ import java.util.stream.Stream;
 
 public class Information {
 
-	//This represents the AOT Cache
-	private Map<Key, Element> elements = new ConcurrentHashMap<>();
+    //This represents the AOT Cache
+    private Map<Key, Element> elements = new ConcurrentHashMap<>();
 
-	//This represents elements that were loaded in the app
-	//from a different source, not the AOT Cache.
-	//Useful to detect if there are elements that should have been cached.
-	private Map<Key, Element> elementsNotInTheCache = new ConcurrentHashMap<>();
+    //This represents elements that were loaded in the app
+    //from a different source, not the AOT Cache.
+    //Useful to detect if there are elements that should have been cached.
+    private Map<Key, Element> elementsNotInTheCache = new ConcurrentHashMap<>();
 
-	//List of warnings and incidents that may be useful to check
-	private List<Warning> warnings = new ArrayList<>();
-	//Auto-generated warnings by `warning check` command
-	private List<Warning> autoWarnings = new ArrayList<>();
+    //List of warnings and incidents that may be useful to check
+    private List<Warning> warnings = new ArrayList<>();
+    //Auto-generated warnings by `warning check` command
+    private List<Warning> autoWarnings = new ArrayList<>();
 
-	//Store information extracted and inferred
-	private Configuration configuration = new Configuration();
-	private Configuration statistics = new Configuration();
+    //Store information extracted and inferred
+    private Configuration configuration = new Configuration();
+    private Configuration statistics = new Configuration();
 
-	//To pre-calculate auto-completion
-	private List<String> identifiers = new ArrayList<>();
-	//To search by address
-	private Map<String, Element> elementsByAddress = new ConcurrentHashMap<>();
-	//To find Heap Roots
-	private Set<String> heapRootAddresses = Collections.synchronizedSet(new HashSet<>());
-	private ReferencingElement heapRoot = null;
+    //To pre-calculate auto-completion
+    private List<String> identifiers = new ArrayList<>();
+    //To search by address
+    private Map<String, Element> elementsByAddress = new ConcurrentHashMap<>();
+    //To find Heap Roots
+    private Set<String> heapRootAddresses = Collections.synchronizedSet(new HashSet<>());
+    private ReferencingElement heapRoot = null;
 
-	//Singletonish
-	private static Information myself;
+    //Singletonish
+    private static Information myself;
 
-	public static Information getMyself() {
-		return myself;
-	}
+    public static Information getMyself() {
+        return myself;
+    }
 
 
-	public Information() {
-		myself = this;
-	}
+    public Information() {
+        myself = this;
+    }
 
-	public void addAOTCacheElement(Element e, String source) {
-		e.addSource(source);
-		final var key = new Key(e.getKey(), e.getType());
-		elements.put(key, e);
+    public void addAOTCacheElement(Element e, String source) {
+        e.addSource(source);
+        final var key = new Key(e.getKey(), e.getType());
+        elements.put(key, e);
 
-		// Due to weird ordering in logfiles, sometimes a method gets
-		// referenced before the class it belongs to gets referenced.
-		// So we have to make sure elements are not repeated both in
-		// this.elements and this.elementsNotInTheCache
-		if (elementsNotInTheCache.containsKey(key)) {
-			elementsNotInTheCache.remove(key);
-		}
+        // Due to weird ordering in logfiles, sometimes a method gets
+        // referenced before the class it belongs to gets referenced.
+        // So we have to make sure elements are not repeated both in
+        // this.elements and this.elementsNotInTheCache
+        if (elementsNotInTheCache.containsKey(key)) {
+            elementsNotInTheCache.remove(key);
+        }
 
-		if (e.getAddress() != null) {
-			elementsByAddress.putIfAbsent(e.getAddress(), e);
-			if (heapRootAddresses.contains(e.getAddress())) {
-				e.setHeapRoot(true);
-				heapRootAddresses.remove(e.getAddress());
-				if (heapRoot != null) {
-					heapRoot.addReference(e);
-				}
-			}
-		}
+        if (e.getAddress() != null) {
+            elementsByAddress.putIfAbsent(e.getAddress(), e);
+            if (heapRootAddresses.contains(e.getAddress())) {
+                e.setHeapRoot(true);
+                heapRootAddresses.remove(e.getAddress());
+                if (heapRoot != null) {
+                    heapRoot.addReference(e);
+                }
+            }
+        }
 
-		// Pre-calculate auto-completions
-		if (e.getType().equalsIgnoreCase("Class") && !identifiers.contains(e.getKey())) {
-			identifiers.add(e.getKey());
-		}
-	}
+        // Pre-calculate auto-completions
+        if (e.getType().equalsIgnoreCase("Class") && !identifiers.contains(e.getKey())) {
+            identifiers.add(e.getKey());
+        }
+    }
 
-	public void addExternalElement(Element e) {
-		elementsNotInTheCache.put(new Key(e.getKey(), e.getType()), e);
-		if (e.getAddress() != null) {
-			elementsByAddress.putIfAbsent(e.getAddress(), e);
-		}
-	}
+    public void addExternalElement(Element e) {
+        elementsNotInTheCache.put(new Key(e.getKey(), e.getType()), e);
+        if (e.getAddress() != null) {
+            elementsByAddress.putIfAbsent(e.getAddress(), e);
+        }
+    }
 
-	public Map<Key, Element> getExternalElements() {
-		return this.elementsNotInTheCache;
-	}
+    public Map<Key, Element> getExternalElements() {
+        return this.elementsNotInTheCache;
+    }
 
-	public void addHeapRoot(String address) {
-		this.heapRootAddresses.add(address);
-	}
+    public void addHeapRoot(String address) {
+        this.heapRootAddresses.add(address);
+    }
 
-	public void setHeapRoot(ReferencingElement e) {
-		this.heapRoot = e;
-	}
+    public void setHeapRoot(ReferencingElement e) {
+        this.heapRoot = e;
+    }
 
-	public void addWarning(Element element, String reason, WarningType warningType) {
-		this.warnings.add(new Warning(element, reason, warningType));
-	}
+    public void addWarning(Element element, String reason, WarningType warningType) {
+        this.warnings.add(new Warning(element, reason, warningType));
+    }
 
-	public void clear() {
-		elements.clear();
-		elementsNotInTheCache.clear();
-		warnings.clear();
-		autoWarnings.clear();
-		statistics.clear();
-		configuration.clear();
-		identifiers.clear();
-		elementsByAddress.clear();
-		heapRootAddresses.clear();
-		heapRoot = null;
-	}
+    public void clear() {
+        elements.clear();
+        elementsNotInTheCache.clear();
+        warnings.clear();
+        autoWarnings.clear();
+        statistics.clear();
+        configuration.clear();
+        identifiers.clear();
+        elementsByAddress.clear();
+        heapRootAddresses.clear();
+        heapRoot = null;
+    }
 
-	public boolean cacheContains(Element e) {
-		return getElements(e.getKey(), null, null, true, false, e.getType()).count() > 0;
-	}
+    public boolean cacheContains(Element e) {
+        CommonParameters parameters = new CommonParameters();
+        parameters.setName(e.getKey());
+        parameters.setTypes(new String[]{e.getType()});
+        return getElements(parameters, false).count() > 0;
+    }
 
-	public Element getByAddress(String address) {
-		return elementsByAddress.getOrDefault(address, null);
-	}
+    public Element getByAddress(String address) {
+        return elementsByAddress.getOrDefault(address, null);
+    }
 
-	public Stream<Element> getElements(String key, String[] packageName, String[] excludePackageName,
-									   Boolean includeArrays, Boolean includeExternalElements, String... type) {
 
-		if (key != null && !key.isBlank() && type != null && type.length > 0) {
-			//This is trivial, don't search through all elements
-			var result = new ArrayList<Element>();
-			for (String t : type) {
-				Element e = elements.get(new Key(key, t));
-				if (e != null) {
-					result.add(e);
-				} else if (includeExternalElements) {
-					e = elementsNotInTheCache.get(new Key(key, t));
-					if (e != null) {
-						result.add(e);
-					}
-				}
-			}
-			return result.parallelStream();
-		}
+    public Stream<Element> getElements(String key, String[] packageName, String[] excludePackageName,
+                                       Boolean includeArrays, Boolean includeExternalElements, String... type) {
 
-		var tmp = new HashSet<Map.Entry<Key, Element>>();
-		tmp.addAll(elements.entrySet());
-		if (includeExternalElements) {
-			tmp.addAll(elementsNotInTheCache.entrySet());
-		}
-		var result = tmp.parallelStream();
+        CommonParameters parameters = new CommonParameters();
+        parameters.setName(key);
+        parameters.setPackageName(packageName);
+        parameters.setExcludePackageName(excludePackageName);
+        parameters.setUseArrays(includeArrays);
+        parameters.setTypes(type);
 
-		if (key != null && !key.isBlank()) {
-			result = result.filter(keyElementEntry -> keyElementEntry.getKey().identifier().equalsIgnoreCase(key));
-		}
+        return getElements(parameters, includeExternalElements);
+    }
 
-		return filterByParams(packageName, excludePackageName, includeArrays, type,
-				result.map(keyElementEntry -> keyElementEntry.getValue()));
-	}
+    public Stream<Element> getElements(CommonParameters parameters, Boolean includeExternalElements) {
+        String key = parameters.getName();
+        String[] type = parameters.getTypes();
 
-	public static Stream<Element> filterByParams(String[] packageName,
-												 String[] excludePackageName,
-												 Boolean addArrays,
-												 String[] type,
-												 Stream<Element> result) {
-		if (packageName != null && packageName.length > 0) {
-			result = result.filter(e -> {
-				if (e instanceof ClassObject classObject) {
-					return Arrays.stream(packageName).anyMatch(p -> classObject.getPackageName().startsWith(p));
-				}
-				if (e instanceof MethodObject methodObject) {
-					if (methodObject.getClassObject() != null) {
-						return Arrays.stream(packageName).anyMatch(p ->
-								methodObject.getClassObject().getPackageName().startsWith(p));
-					}
-					return Arrays.stream(packageName).anyMatch(p -> methodObject.getName().startsWith(p));
-				}
-				if (e.getType().equals("Object")
-						|| e.getType().startsWith("ConstantPool")) {
-					return Arrays.stream(packageName)
-							.anyMatch(p -> e.getKey().startsWith(p));
-				}
-				if (e.getType().endsWith("TrainingData")
-						|| e.getType().equalsIgnoreCase("MethodData")
-						|| e.getType().equalsIgnoreCase("MethodCounters")) {
-					return Arrays.stream(packageName)
-							.anyMatch(p -> ((ReferencingElement) e).getReferences().stream()
-									.anyMatch(r -> {
-										if (r instanceof ClassObject classObject) {
-											return classObject.getPackageName().startsWith(p);
-										} else if (r instanceof MethodObject methodObject) {
-											return methodObject.getClassObject().getPackageName().startsWith(p);
-										}
-										return false;
-									}));
-				}
-				return false;
-			});
-		}
+        if (key != null && !key.isBlank() && type != null && type.length > 0) {
+            //This is trivial, don't search through all elements
+            var result = new ArrayList<Element>();
+            for (String t : type) {
+                Element e = elements.get(new Key(key, t));
+                if (e != null) {
+                    result.add(e);
+                } else if (includeExternalElements) {
+                    e = elementsNotInTheCache.get(new Key(key, t));
+                    if (e != null) {
+                        result.add(e);
+                    }
+                }
+            }
+            return result.parallelStream();
+        }
 
-		if (excludePackageName != null && excludePackageName.length > 0) {
-			result = result.filter(e -> {
-				if (e instanceof ClassObject classObject) {
-					return Arrays.stream(excludePackageName).noneMatch(p -> classObject.getPackageName().startsWith(p));
-				}
-				if (e instanceof MethodObject methodObject) {
-					if (methodObject.getClassObject() != null) {
-						return Arrays.stream(excludePackageName).noneMatch(p ->
-								methodObject.getClassObject().getPackageName().startsWith(p));
-					}
-					return Arrays.stream(excludePackageName).noneMatch(p -> methodObject.getName().startsWith(p));
-				}
-				if (e.getType().equals("Object") || e.getType().startsWith("ConstantPool")) {
+        var tmp = new HashSet<Map.Entry<Key, Element>>();
+        tmp.addAll(elements.entrySet());
+        if (includeExternalElements) {
+            tmp.addAll(elementsNotInTheCache.entrySet());
+        }
+        var result = tmp.parallelStream();
 
-					return Arrays.stream(excludePackageName).noneMatch(p -> e.getKey().startsWith(p));
-				}
-				return false;
-			});
-		}
+        if (key != null && !key.isBlank()) {
+            result = result.filter(keyElementEntry -> keyElementEntry.getKey().identifier().equalsIgnoreCase(key));
+        }
 
-		if (type != null && type.length > 0) {
-			result = result.filter(e -> Arrays.stream(type).anyMatch(t -> t.equalsIgnoreCase(e.getType()))
-			);
-		}
+        return filterByParams(parameters, result.map(keyElementEntry -> keyElementEntry.getValue()));
+    }
 
-		if (!addArrays) {
-			result = result.filter(e -> {
-				if (e instanceof ClassObject classObject) {
-					return !classObject.isArray();
-				}
-				return true;
-			});
-		}
-		return result;
-	}
 
-	public List<Warning> getWarnings() {
-		return warnings;
-	}
+    public static Stream<Element> filterByParams(String[] packageName,
+                                                 String[] excludePackageName,
+                                                 Boolean addArrays,
+                                                 String[] types,
+                                                 Boolean showOnlyHeapRoots,
+                                                 Stream<Element> result) {
 
-	public List<Warning> getAutoWarnings() {
-		return autoWarnings;
-	}
+        CommonParameters parameters = new CommonParameters();
+        parameters.setPackageName(packageName);
+        parameters.setExcludePackageName(excludePackageName);
+        parameters.setUseArrays(addArrays);
+        parameters.setTypes(types);
+        parameters.setHeapRoot(showOnlyHeapRoots);
 
-	public Collection<Element> getAll() {
-		return elements.values();
-	}
+        return filterByParams(parameters, result);
+    }
 
-	public Configuration getConfiguration() {
-		return configuration;
-	}
+    public static Stream<Element> filterByParams(CommonParameters parameters, Stream<Element> result) {
 
-	public Configuration getStatistics() {
-		return statistics;
-	}
+        var packageName = parameters.getPackageName();
+        var excludePackageName = parameters.getExcludePackageName();
 
-	public List<String> getAllTypes() {
-		return this.elements.keySet()
-				.parallelStream().map(key -> key.type).distinct().toList();
-	}
 
-	public List<String> getAllPackages() {
-		return this.elements.entrySet()
-				.parallelStream()
-				.filter((entry) -> entry.getValue() instanceof ClassObject)
-				.map(entry -> ((ClassObject) entry.getValue()).getPackageName())
-				.distinct()
-				.toList();
-	}
+        if (packageName != null && packageName.length > 0) {
+            result = result.filter(e -> {
+                if (e instanceof ClassObject classObject) {
+                    return Arrays.stream(packageName).anyMatch(p -> classObject.getPackageName().startsWith(p));
+                }
+                if (e instanceof MethodObject methodObject) {
+                    if (methodObject.getClassObject() != null) {
+                        return Arrays.stream(packageName).anyMatch(p ->
+                                methodObject.getClassObject().getPackageName().startsWith(p));
+                    }
+                    return Arrays.stream(packageName).anyMatch(p -> methodObject.getName().startsWith(p));
+                }
+                if (e.getType().equals("Object")
+                        || e.getType().startsWith("ConstantPool")) {
+                    return Arrays.stream(packageName)
+                            .anyMatch(p -> e.getKey().startsWith(p));
+                }
+                if (e.getType().endsWith("TrainingData")
+                        || e.getType().equalsIgnoreCase("MethodData")
+                        || e.getType().equalsIgnoreCase("MethodCounters")) {
+                    return Arrays.stream(packageName)
+                            .anyMatch(p -> ((ReferencingElement) e).getReferences().stream()
+                                    .anyMatch(r -> {
+                                        if (r instanceof ClassObject classObject) {
+                                            return classObject.getPackageName().startsWith(p);
+                                        } else if (r instanceof MethodObject methodObject) {
+                                            return methodObject.getClassObject().getPackageName().startsWith(p);
+                                        }
+                                        return false;
+                                    }));
+                }
+                return false;
+            });
+        }
 
-	public List<String> getIdentifiers() {
-		return List.copyOf(identifiers);
-	}
+        if (excludePackageName != null && excludePackageName.length > 0) {
+            result = result.filter(e -> {
+                if (e instanceof ClassObject classObject) {
+                    return Arrays.stream(excludePackageName).noneMatch(p -> classObject.getPackageName().startsWith(p));
+                }
+                if (e instanceof MethodObject methodObject) {
+                    if (methodObject.getClassObject() != null) {
+                        return Arrays.stream(excludePackageName).noneMatch(p ->
+                                methodObject.getClassObject().getPackageName().startsWith(p));
+                    }
+                    return Arrays.stream(excludePackageName).noneMatch(p -> methodObject.getName().startsWith(p));
+                }
+                if (e.getType().equals("Object") || e.getType().startsWith("ConstantPool")) {
 
-	public record Key(String identifier, String type) {
-	}
+                    return Arrays.stream(excludePackageName).noneMatch(p -> e.getKey().startsWith(p));
+                }
+                return false;
+            });
+        }
+
+        if (parameters.getTypes() != null && parameters.getTypes().length > 0) {
+            result = result.filter(
+                    e -> Arrays.stream(parameters.getTypes())
+                    .anyMatch(t -> t.equalsIgnoreCase(e.getType()))
+            );
+        }
+
+        if (parameters.isHeapRoot()) {
+            result = result.filter(e -> e.isHeapRoot());
+        }
+
+        if (!parameters.useArrays()) {
+            result = result.filter(e -> {
+                if (e instanceof ClassObject classObject) {
+                    return !classObject.isArray();
+                }
+                return true;
+            });
+        }
+
+
+        if (parameters.getTrained()) {
+            result = result.filter(e -> e.isTraineable() && e.isTrained());
+        }
+
+        if (!parameters.getLambdas()) {
+            result = result
+                    .filter(e -> {
+                        if (e instanceof ClassObject classObject) {
+                            return !classObject.getName().contains("$$Lambda");
+                        } else {
+                            return true;
+                        }
+                    });
+        }
+
+        if (!parameters.getInnerClasses()) {
+            result = result
+                    .filter(e -> {
+                        if (e instanceof ClassObject classObject) {
+                            return !classObject.getName().contains("$");
+                        } else {
+                            return true;
+                        }
+                    });
+        }
+
+        if (parameters.getReferencing() != null) {
+            result = result.filter(e -> {
+                if (e instanceof ReferencingElement re) {
+                    return re.getReferences().stream().anyMatch(
+                            ref -> ref.getKey().equalsIgnoreCase(parameters.getReferencing()));
+                }
+
+                return false;
+            });
+        }
+
+        switch (parameters.getLoaded()) {
+            case training -> result =
+                    result.filter(e -> e.getType().equalsIgnoreCase("Class")
+                            && e.wasLoaded().equals(Element.WhichRun.Training)
+                            && !((ClassObject) e).isArray());
+            case production -> result = result.filter(e -> e.getType().equalsIgnoreCase("Class") &&
+                    e.wasLoaded().equals(Element.WhichRun.Production));
+            case both -> result = result.filter(e -> e.getType().equalsIgnoreCase("Class") &&
+                    e.wasLoaded().equals(Element.WhichRun.Both));
+            case none -> result = result.filter(e -> e.getType().equalsIgnoreCase("Class") &&
+                    e.wasLoaded().equals(Element.WhichRun.None));
+            default -> {
+            }
+        }
+
+        return result;
+    }
+
+    public List<Warning> getWarnings() {
+        return warnings;
+    }
+
+    public List<Warning> getAutoWarnings() {
+        return autoWarnings;
+    }
+
+    public Collection<Element> getAll() {
+        return elements.values();
+    }
+
+    public Configuration getConfiguration() {
+        return configuration;
+    }
+
+    public Configuration getStatistics() {
+        return statistics;
+    }
+
+    public List<String> getAllTypes() {
+        return this.elements.keySet()
+                .parallelStream().map(key -> key.type).distinct().toList();
+    }
+
+    public List<String> getAllPackages() {
+        return this.elements.entrySet()
+                .parallelStream()
+                .filter((entry) -> entry.getValue() instanceof ClassObject)
+                .map(entry -> ((ClassObject) entry.getValue()).getPackageName())
+                .distinct()
+                .toList();
+    }
+
+    public List<String> getIdentifiers() {
+        return List.copyOf(identifiers);
+    }
+
+    public record Key(String identifier, String type) {
+    }
 }

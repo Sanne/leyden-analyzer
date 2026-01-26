@@ -21,37 +21,6 @@ class ListCommand implements Runnable {
 	@CommandLine.Mixin
 	protected CommonParameters parameters;
 
-	@CommandLine.Option(names = {"--trained"},
-			description = {"Only displays elements with training information.",
-					"This may restrict the types of elements shown, along with what was passed as parameters."},
-			defaultValue = "false",
-			arity = "0..1")
-	protected Boolean trained;
-
-	@CommandLine.Option(names = {"--lambdas"},
-			description = {"Display lambda classes."},
-			defaultValue = "false",
-			arity = "0..1")
-	protected Boolean lambdas;
-
-	@CommandLine.Option(names = {"--innerClasses"},
-			description = {"Display inner classes."},
-			defaultValue = "false",
-			arity = "0..1")
-	protected Boolean innerClasses;
-
-	@CommandLine.Option(names = {"--loaded"},
-			description = {"Display classes that were loaded in a training run, a production run, both, or none.",
-					"This will restrict types to only classes, regardless of the rest of the arguments."},
-			defaultValue = "all",
-			arity = "0..1")
-	protected WhichRun loaded;
-
-	@CommandLine.Option(names = {"--referencing"},
-			description = {"Display elements which reference the element defined by this id."},
-			arity = "0..1")
-	protected String referencing;
-
 	public void run() {
 		final var counter = new AtomicInteger();
 		final var elements = findElements(counter);
@@ -64,69 +33,14 @@ class ListCommand implements Runnable {
 		Stream<Element> elements;
 
 		switch (parameters.use) {
-			case both -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-					parameters.excludePackageName, parameters.arrays, true, parameters.types);
+			case both -> elements = parent.getInformation().getElements(parameters, true);
 			case notCached -> elements = Information.getMyself().filterByParams(
-					parameters.packageName, parameters.excludePackageName, parameters.arrays, parameters.types,
+					parameters,
 					parent.getInformation().getExternalElements().entrySet().parallelStream()
 							.filter(keyElementEntry -> parameters.getName().isBlank()
 									|| keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
 							.map(keyElementEntry -> keyElementEntry.getValue()));
-			default -> elements = parent.getInformation().getElements(parameters.getName(), parameters.packageName,
-					parameters.excludePackageName, parameters.arrays, false, parameters.types);
-		}
-
-
-		if (trained) {
-			elements = elements.filter(e -> e.isTraineable() && e.isTrained());
-		}
-
-		if (!lambdas) {
-			elements = elements
-					.filter(e -> {
-						if (e instanceof ClassObject classObject) {
-							return !classObject.getName().contains("$$Lambda");
-						} else {
-							return true;
-						}
-					});
-		}
-
-		if (!innerClasses) {
-			elements = elements
-					.filter(e -> {
-						if (e instanceof ClassObject classObject) {
-							return !classObject.getName().contains("$");
-						} else {
-							return true;
-						}
-					});
-		}
-
-		if (referencing != null) {
-			elements = elements.filter(e -> {
-				if (e instanceof ReferencingElement re) {
-					return re.getReferences().stream().anyMatch(
-							ref -> ref.getKey().equalsIgnoreCase(referencing));
-				}
-
-				return false;
-			});
-		}
-
-		switch (loaded) {
-			case training -> elements =
-					elements.filter(e -> e.getType().equalsIgnoreCase("Class")
-							&& e.wasLoaded().equals(Element.WhichRun.Training)
-							&& !((ClassObject)e).isArray());
-			case production -> elements = elements.filter(e -> e.getType().equalsIgnoreCase("Class") &&
-					e.wasLoaded().equals(Element.WhichRun.Production));
-			case both -> elements = elements.filter(e -> e.getType().equalsIgnoreCase("Class") &&
-					e.wasLoaded().equals(Element.WhichRun.Both));
-			case none -> elements = elements.filter(e -> e.getType().equalsIgnoreCase("Class") &&
-					e.wasLoaded().equals(Element.WhichRun.None));
-			default -> {
-			}
+			default -> elements = parent.getInformation().getElements(parameters, false);
 		}
 
 		elements = elements.sorted(Comparator.comparing(Element::getKey).thenComparing(Element::getType));

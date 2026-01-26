@@ -4,6 +4,7 @@ import picocli.CommandLine;
 import tooling.leyden.commands.autocomplete.Identifiers;
 import tooling.leyden.commands.autocomplete.Packages;
 import tooling.leyden.commands.autocomplete.Types;
+import tooling.leyden.commands.autocomplete.WhichRun;
 
 @CommandLine.Command(synopsisHeading      = "%nUsage:%n%n",
 		descriptionHeading   = "%nDescription:%n%n",
@@ -64,8 +65,51 @@ public class CommonParameters {
 			completionCandidates = Types.class)
 	protected String[] types;
 
+	@CommandLine.Option(
+			names = {"-hr", "--HeapRoot"},
+			arity = "0..1",
+			paramLabel = "<isHeapRoot>",
+			defaultValue = "false",
+			description = "If true, shows only heapRoot elements.")
+	protected Boolean isHeapRoot = false;
+
+	@CommandLine.Option(names = {"--loaded"},
+			description = {"Display classes that were loaded in a training run, a production run, both, or none.",
+					"This will restrict types to only classes, regardless of the rest of the arguments."},
+			defaultValue = "all",
+			arity = "0..1")
+	protected WhichRun loaded = WhichRun.all;
+
+	@CommandLine.Option(names = {"--referencing"},
+			description = {"Display elements which reference the element defined by this id."},
+			arity = "0..1")
+	protected String referencing;
+
+	@CommandLine.Option(names = {"--trained"},
+			description = {"Only displays elements with training information.",
+					"This may restrict the types of elements shown, along with what was passed as parameters."},
+			defaultValue = "false",
+			arity = "0..1")
+	protected Boolean trained = false;
+
+	@CommandLine.Option(names = {"--lambdas"},
+			description = {"Display lambda classes."},
+			defaultValue = "true",
+			arity = "0..1")
+	protected Boolean lambdas = true;
+
+	@CommandLine.Option(names = {"--innerClasses"},
+			description = {"Display inner classes."},
+			defaultValue = "true",
+			arity = "0..1")
+	protected Boolean innerClasses = true;
+
 	public String getName() {
 		return cleanQuotes(this.name);
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	private String cleanQuotes(String string) {
@@ -75,5 +119,69 @@ public class CommonParameters {
 			string = string.substring(1, string.length() - 1);
 		}
 		return string;
+	}
+
+	public Boolean useArrays() {
+		return arrays;
+	}
+
+	public void setUseArrays(Boolean arrays) {
+		this.arrays = arrays;
+	}
+
+	public Boolean isHeapRoot() {
+		return isHeapRoot;
+	}
+
+	public void setHeapRoot(Boolean heapRoot) {
+		isHeapRoot = heapRoot;
+	}
+
+	public String[] getPackageName() {
+		return packageName;
+	}
+
+	public void setPackageName(String[] packageName) {
+		this.packageName = packageName;
+	}
+
+	public String[] getExcludePackageName() {
+		return excludePackageName;
+	}
+
+	public void setExcludePackageName(String[] excludePackageName) {
+		this.excludePackageName = excludePackageName;
+	}
+
+	public String[] getTypes() {
+		return types;
+	}
+
+	public void setTypes(String[] types) {
+		this.types = types;
+	}
+
+	public ElementsToUse getUse() {
+		return use;
+	}
+
+	public Boolean getTrained() {
+		return trained;
+	}
+
+	public Boolean getLambdas() {
+		return lambdas;
+	}
+
+	public String getReferencing() {
+		return referencing;
+	}
+
+	public WhichRun getLoaded() {
+		return loaded;
+	}
+
+	public Boolean getInnerClasses() {
+		return innerClasses;
 	}
 }
