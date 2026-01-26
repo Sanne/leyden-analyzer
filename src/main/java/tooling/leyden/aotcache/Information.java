@@ -258,6 +258,20 @@ public class Information {
 
                     return Arrays.stream(excludePackageName).noneMatch(p -> e.getKey().startsWith(p));
                 }
+                if (e.getType().endsWith("TrainingData")
+                        || e.getType().equalsIgnoreCase("MethodData")
+                        || e.getType().equalsIgnoreCase("MethodCounters")) {
+                    return Arrays.stream(excludePackageName)
+                            .noneMatch(p -> ((ReferencingElement) e).getReferences().stream()
+                                    .anyMatch(r -> {
+                                        if (r instanceof ClassObject classObject) {
+                                            return classObject.getPackageName().startsWith(p);
+                                        } else if (r instanceof MethodObject methodObject) {
+                                            return methodObject.getClassObject().getPackageName().startsWith(p);
+                                        }
+                                        return false;
+                                    }));
+                }
                 return false;
             });
         }
