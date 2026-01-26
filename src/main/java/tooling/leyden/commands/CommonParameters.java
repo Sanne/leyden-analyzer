@@ -217,4 +217,8 @@ public class CommonParameters {
 	public String getInstanceOf() {
 		return instanceOf;
 	}
+
+	public void setInstanceOf(String instanceOf) {
+		this.instanceOf = instanceOf;
+	}
 }

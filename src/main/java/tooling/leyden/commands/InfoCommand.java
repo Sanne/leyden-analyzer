@@ -5,15 +5,11 @@ import org.jline.utils.AttributedStyle;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import tooling.leyden.aotcache.Configuration;
-import tooling.leyden.aotcache.ConstantPoolObject;
 import tooling.leyden.aotcache.Element;
-import tooling.leyden.aotcache.Information;
 import tooling.leyden.aotcache.MethodObject;
 import tooling.leyden.aotcache.ReferencingElement;
 import tooling.leyden.commands.autocomplete.InfoCommandTypes;
 
-import javax.sql.CommonDataSource;
-import java.lang.reflect.Method;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -168,10 +164,21 @@ class InfoCommand implements Runnable {
 			parameters.setTypes(new String[]{"Object"});
 			Long objectCount = parent.getInformation().getElements(parameters, false).count();
 			(new AttributedString(intFormat.format(objectCount), greenFormat)).println(parent.getTerminal());
-			parameters.setShowAOTInited(true);
-			Long aotInited = parent.getInformation().getElements(parameters, false).count();
-			printPercentage("  -> AOT-inited: ", objectCount.doubleValue(), percentFormat, intFormat, greenFormat,
-					aotInited.doubleValue());
+			if (objectCount > 0) {
+				parameters.setShowAOTInited(true);
+				Long aotInited = parent.getInformation().getElements(parameters, false).count();
+				printPercentage("  -> AOT-inited: ", objectCount.doubleValue(), percentFormat, intFormat, greenFormat,
+						aotInited.doubleValue());
+				parameters.setShowAOTInited(false);
+				parameters.setInstanceOf("java.lang.Class");
+				Long classInstances = parent.getInformation().getElements(parameters, false).count();
+				printPercentage("  -> java.lang.Class instances: ", objectCount.doubleValue(), percentFormat, intFormat, greenFormat,
+						classInstances.doubleValue());
+				parameters.setInstanceOf("java.lang.String");
+				Long stringInstances = parent.getInformation().getElements(parameters, false).count();
+				printPercentage("  -> java.lang.String instances: ", objectCount.doubleValue(), percentFormat, intFormat, greenFormat,
+						stringInstances.doubleValue());
+			}
 		}
 
 		Long methodCounters =
