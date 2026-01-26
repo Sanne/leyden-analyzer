@@ -1,10 +1,7 @@
 package tooling.leyden.commands;
 
 import picocli.CommandLine;
-import tooling.leyden.commands.autocomplete.Identifiers;
-import tooling.leyden.commands.autocomplete.Packages;
-import tooling.leyden.commands.autocomplete.Types;
-import tooling.leyden.commands.autocomplete.WhichRun;
+import tooling.leyden.commands.autocomplete.*;
 
 @CommandLine.Command(synopsisHeading      = "%nUsage:%n%n",
 		descriptionHeading   = "%nDescription:%n%n",
@@ -42,6 +39,14 @@ public class CommonParameters {
 			paramLabel = "<id>",
 			completionCandidates = Identifiers.class)
 	private String name;
+
+	@CommandLine.Option(names = {"--address", "-a"},
+			description ={"Find elements on this address (0x....)."},
+			defaultValue = "",
+			arity = "0..1",
+			paramLabel = "<address>",
+			completionCandidates = Addressess.class)
+    String address;
 
 	@CommandLine.Option(names = {"--arrays"},
 			description = "Use array classes if true. True by default.",
@@ -93,13 +98,13 @@ public class CommonParameters {
 	protected Boolean trained = false;
 
 	@CommandLine.Option(names = {"--lambdas"},
-			description = {"Display lambda classes."},
+			description = {"Display lambda classes too."},
 			defaultValue = "true",
 			arity = "0..1")
 	protected Boolean lambdas = true;
 
 	@CommandLine.Option(names = {"--innerClasses"},
-			description = {"Display inner classes."},
+			description = {"Display inner classes too."},
 			defaultValue = "true",
 			arity = "0..1")
 	protected Boolean innerClasses = true;
@@ -183,5 +188,9 @@ public class CommonParameters {
 
 	public Boolean getInnerClasses() {
 		return innerClasses;
+	}
+
+	public String getAddress() {
+		return address;
 	}
 }

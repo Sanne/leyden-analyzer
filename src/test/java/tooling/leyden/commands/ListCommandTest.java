@@ -104,6 +104,9 @@ class ListCommandTest extends DefaultTest {
 
 		command.parameters.innerClasses = false;
 		assertEquals(1, command.findElements(new AtomicInteger()).count());
+
+		command.parameters.address = "0x0000000801eeb208";
+		assertEquals(1, command.findElements(new AtomicInteger()).count());
 	}
 
 }

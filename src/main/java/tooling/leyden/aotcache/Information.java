@@ -164,6 +164,11 @@ public class Information {
             return result.parallelStream();
         }
 
+        //Another trivial set
+        if (parameters.getAddress() != null) {
+            return Stream.ofNullable(elementsByAddress.getOrDefault(parameters.getAddress(), null));
+        }
+
         var tmp = new HashSet<Map.Entry<Key, Element>>();
         tmp.addAll(elements.entrySet());
         if (includeExternalElements) {
@@ -369,6 +374,10 @@ public class Information {
 
     public List<String> getIdentifiers() {
         return List.copyOf(identifiers);
+    }
+
+    public List<String> getAddressess() {
+        return List.copyOf(elementsByAddress.keySet());
     }
 
     public record Key(String identifier, String type) {
