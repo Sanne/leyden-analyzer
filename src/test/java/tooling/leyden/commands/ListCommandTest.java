@@ -109,4 +109,27 @@ class ListCommandTest extends DefaultTest {
 		assertEquals(1, command.findElements(new AtomicInteger()).count());
 	}
 
+
+	@Test
+	void filterAOTInited() {
+
+		final var loadFile = new LoadFileCommand();
+		loadFile.setParent(getDefaultCommand());
+		AOTMapParser aotCacheParser = new AOTMapParser(loadFile);
+
+		aotCacheParser.accept("0x00000000ffdf4f38: @@ Object (0xffdf4f38) java.lang.Class Ljava/util/ArrayList; (aot-inited)");
+		aotCacheParser.accept("0x00000000ffe5d0a0: @@ Object (0xffe5d0a0) java.lang.Integer");
+
+		ListCommand command = new ListCommand();
+		command.parent = getDefaultCommand();
+		command.parameters = new CommonParameters();
+		assertEquals(2, command.findElements(new AtomicInteger()).count());
+
+		command.parameters.showAOTInited = false;
+		assertEquals(1, command.findElements(new AtomicInteger()).count());
+
+		command.parameters.showAOTInited = true;
+		assertEquals(1, command.findElements(new AtomicInteger()).count());
+	}
+
 }

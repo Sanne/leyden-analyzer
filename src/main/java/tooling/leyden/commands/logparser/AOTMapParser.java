@@ -2,14 +2,7 @@ package tooling.leyden.commands.logparser;
 
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
-import tooling.leyden.aotcache.BasicObject;
-import tooling.leyden.aotcache.ClassObject;
-import tooling.leyden.aotcache.ConstantPoolObject;
-import tooling.leyden.aotcache.Element;
-import tooling.leyden.aotcache.ElementFactory;
-import tooling.leyden.aotcache.MethodObject;
-import tooling.leyden.aotcache.PlaceHolderElement;
-import tooling.leyden.aotcache.ReferencingElement;
+import tooling.leyden.aotcache.*;
 import tooling.leyden.commands.LoadFileCommand;
 
 import java.util.regex.Matcher;
@@ -361,7 +354,11 @@ public class AOTMapParser extends Parser {
 
 	private Element processObject(String identifier, String miniaddress, String address) {
 		var id = miniaddress + " " + identifier;
-		ReferencingElement element = (ReferencingElement) ElementFactory.getOrCreate(id, "Object", address);
+		InstanceObject element = (InstanceObject) ElementFactory.getOrCreate(id, "Object", address);
+
+		if (identifier.endsWith("(aot-inited)")) {
+			element.setAOTinited(true);
+		}
 
 		String[] contentParts = identifier.split("\\s+");
 

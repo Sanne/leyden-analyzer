@@ -3,13 +3,7 @@ package tooling.leyden.commands.logparser;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tooling.leyden.aotcache.ClassObject;
-import tooling.leyden.aotcache.ConstantPoolObject;
-import tooling.leyden.aotcache.Element;
-import tooling.leyden.aotcache.ElementFactory;
-import tooling.leyden.aotcache.Information;
-import tooling.leyden.aotcache.MethodObject;
-import tooling.leyden.aotcache.ReferencingElement;
+import tooling.leyden.aotcache.*;
 import tooling.leyden.commands.DefaultTest;
 import tooling.leyden.commands.LoadFileCommand;
 
@@ -602,6 +596,7 @@ class AOTCacheParserTest extends DefaultTest {
 		e = information.getByAddress("0x00000000ffe5d0a0");
 		assertEquals("Object", e.getType());
 		assertFalse(e.isHeapRoot());
+		assertFalse(((InstanceObject)e).isAOTinited());
 		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x000000080081b748")));
 		assertEquals(1, ((ReferencingElement) e).getReferences().size());
@@ -609,6 +604,7 @@ class AOTCacheParserTest extends DefaultTest {
 		e = information.getByAddress("0x00000000ffdf4f38");
 		assertEquals("Object", e.getType());
 		assertFalse(e.isHeapRoot());
+		assertTrue(((InstanceObject)e).isAOTinited());
 		assertTrue(((ReferencingElement) e).getReferences().stream()
 				.anyMatch(ref -> ref.getAddress().equalsIgnoreCase("0x00000008007f5a48")));
 		assertTrue(((ReferencingElement) e).getReferences().stream()

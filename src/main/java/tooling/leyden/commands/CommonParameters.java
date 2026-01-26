@@ -108,6 +108,13 @@ public class CommonParameters {
 			arity = "0..1")
 	protected Boolean innerClasses = true;
 
+	@CommandLine.Option(
+			names = {"--showAOTInited"},
+			arity = "0..1",
+			paramLabel = "<aot-inited>",
+			description = "If true, shows only aot-inited objects. If false, shows only non-aot-inited objects.")
+	protected Boolean showAOTInited = null;
+
 	public String getName() {
 		return cleanQuotes(this.name);
 	}
@@ -191,5 +198,13 @@ public class CommonParameters {
 
 	public String getAddress() {
 		return address;
+	}
+
+	public Boolean getShowAOTInited() {
+		return showAOTInited;
+	}
+
+	public void setShowAOTInited(Boolean showAOTInited) {
+		this.showAOTInited = showAOTInited;
 	}
 }

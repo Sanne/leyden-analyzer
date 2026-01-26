@@ -25,8 +25,11 @@ public class ElementFactory {
 				e = new ConstantPoolObject(identifier);
 			}
 			case "KlassTrainingData", "CompileTrainingData", "MethodData", "MethodCounters", "MethodTrainingData",
-				 "Symbol", "Object" -> {
+				 "Symbol" -> {
 				e = new ReferencingElement(identifier, type);
+			}
+			case "Object" -> {
+				e = new InstanceObject(identifier);
 			}
 			default -> {
 				e = new BasicObject(identifier);

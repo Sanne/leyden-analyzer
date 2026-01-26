@@ -287,6 +287,16 @@ public class Information {
             result = result.filter(e -> e.isHeapRoot() == parameters.isHeapRoot());
         }
 
+        if (parameters.getShowAOTInited() != null) {
+            result = result.filter(e -> {
+                if (e instanceof InstanceObject io) {
+                    return io.isAOTinited() == parameters.getShowAOTInited();
+                } else {
+                    return true;
+                }
+            });
+        }
+
         if (!parameters.useArrays()) {
             result = result.filter(e -> {
                 if (e instanceof ClassObject classObject) {

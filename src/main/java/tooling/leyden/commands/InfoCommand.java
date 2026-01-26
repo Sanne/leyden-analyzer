@@ -12,6 +12,7 @@ import tooling.leyden.aotcache.MethodObject;
 import tooling.leyden.aotcache.ReferencingElement;
 import tooling.leyden.commands.autocomplete.InfoCommandTypes;
 
+import javax.sql.CommonDataSource;
 import java.lang.reflect.Method;
 import java.text.NumberFormat;
 import java.util.*;
@@ -162,8 +163,15 @@ class InfoCommand implements Runnable {
 			printPercentage("  -> KlassTrainingData: ", classes.doubleValue(), percentFormat, intFormat, greenFormat,
 					trainingData.doubleValue());
 			(new AttributedString("Objects in AOT Cache: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-			(new AttributedString(intFormat.format(parent.getInformation().getElements(null, null, null, true, false,
-					"Object").count()), greenFormat)).println(parent.getTerminal());
+			CommonParameters parameters = new CommonParameters();
+			parameters.setUseArrays(true);
+			parameters.setTypes(new String[]{"Object"});
+			Long objectCount = parent.getInformation().getElements(parameters, false).count();
+			(new AttributedString(intFormat.format(objectCount), greenFormat)).println(parent.getTerminal());
+			parameters.setShowAOTInited(true);
+			Long aotInited = parent.getInformation().getElements(parameters, false).count();
+			printPercentage("  -> AOT-inited: ", objectCount.doubleValue(), percentFormat, intFormat, greenFormat,
+					aotInited.doubleValue());
 		}
 
 		Long methodCounters =
