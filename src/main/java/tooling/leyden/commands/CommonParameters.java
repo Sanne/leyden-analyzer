@@ -41,14 +41,14 @@ public class CommonParameters {
 	private String name;
 
 	@CommandLine.Option(names = {"--address", "-a"},
-			description ={"Find elements on this address (0x....)."},
+			description ={"Find elements on this address (0x....). It has to be the long address."},
 			arity = "0..1",
 			paramLabel = "<address>",
 			completionCandidates = Addressess.class)
     String address;
 
-	@CommandLine.Option(names = {"--arrays"},
-			description = "Use array classes if true. True by default.",
+	@CommandLine.Option(names = {"--showArrays"},
+			description = "Display array classes if true. True by default.",
 			defaultValue = "true",
 			arity = "0..1")
 	protected Boolean arrays = true;
@@ -97,13 +97,13 @@ public class CommonParameters {
 	protected Boolean trained = false;
 
 	@CommandLine.Option(names = {"--lambdas"},
-			description = {"Display lambda classes too."},
+			description = {"Display lambda classes too. Useful to hide lambda classes."},
 			defaultValue = "true",
 			arity = "0..1")
 	protected Boolean lambdas = true;
 
 	@CommandLine.Option(names = {"--innerClasses"},
-			description = {"Display inner classes too."},
+			description = {"Display inner classes too. Useful to hide inner classes."},
 			defaultValue = "true",
 			arity = "0..1")
 	protected Boolean innerClasses = true;
