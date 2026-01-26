@@ -42,7 +42,6 @@ public class CommonParameters {
 
 	@CommandLine.Option(names = {"--address", "-a"},
 			description ={"Find elements on this address (0x....)."},
-			defaultValue = "",
 			arity = "0..1",
 			paramLabel = "<address>",
 			completionCandidates = Addressess.class)
