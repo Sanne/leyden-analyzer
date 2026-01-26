@@ -269,8 +269,8 @@ public class Information {
             );
         }
 
-        if (parameters.isHeapRoot()) {
-            result = result.filter(e -> e.isHeapRoot());
+        if (parameters.isHeapRoot() != null) {
+            result = result.filter(e -> e.isHeapRoot() == parameters.isHeapRoot());
         }
 
         if (!parameters.useArrays()) {

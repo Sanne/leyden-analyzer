@@ -70,12 +70,11 @@ public class CommonParameters {
 	protected String[] types;
 
 	@CommandLine.Option(
-			names = {"-hr", "--HeapRoot"},
+			names = {"-hr", "--showHeapRoot"},
 			arity = "0..1",
 			paramLabel = "<isHeapRoot>",
-			defaultValue = "false",
-			description = "If true, shows only heapRoot elements.")
-	protected Boolean isHeapRoot = false;
+			description = "If true, shows only heapRoot elements. If false, shows only non-heapRoot elements.")
+	protected Boolean isHeapRoot = null;
 
 	@CommandLine.Option(names = {"--loaded"},
 			description = {"Display classes that were loaded in a training run, a production run, both, or none.",
@@ -86,7 +85,8 @@ public class CommonParameters {
 
 	@CommandLine.Option(names = {"--referencing"},
 			description = {"Display elements which reference the element defined by this id."},
-			arity = "0..1")
+			arity = "0..1",
+			completionCandidates = Identifiers.class)
 	protected String referencing;
 
 	@CommandLine.Option(names = {"--trained"},
