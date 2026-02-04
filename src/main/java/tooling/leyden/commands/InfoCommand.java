@@ -47,7 +47,7 @@ class InfoCommand implements Runnable {
 
 		elements.forEach(item -> {
 			counts.putIfAbsent(item.getType(), new AtomicInteger());
-			counts.get(counts.get(item.getType()).incrementAndGet());
+			counts.get(item.getType()).incrementAndGet();
 		});
 
 		counts.entrySet().
@@ -55,8 +55,7 @@ class InfoCommand implements Runnable {
 				sorted(Map.Entry.comparingByKey())
 				.forEach(entry ->
 						parent.getOut().
-								println("There are " + entry.getValue().get()
-										+ " elements of type " + entry.getKey() + "."));
+								println(String.format("%1$25s", entry.getKey()) + " => " + entry.getValue().get()));
 	}
 
 	private boolean shouldShow(String s) {
