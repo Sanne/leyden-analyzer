@@ -182,6 +182,10 @@ public class CommonParameters {
 		return use;
 	}
 
+	public void setUse(ElementsToUse use) {
+		this.use = use;
+	}
+
 	public Boolean getTrained() {
 		return trained;
 	}
@@ -196,6 +200,10 @@ public class CommonParameters {
 
 	public WhichRun getLoaded() {
 		return loaded;
+	}
+
+	public void setLoaded(WhichRun loaded) {
+		this.loaded = loaded;
 	}
 
 	public Boolean getInnerClasses() {

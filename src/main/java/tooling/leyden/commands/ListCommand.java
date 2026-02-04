@@ -30,19 +30,7 @@ class ListCommand implements Runnable {
 	}
 
 	protected Stream<Element> findElements(AtomicInteger counter) {
-		Stream<Element> elements;
-
-		switch (parameters.use) {
-			case both -> elements = parent.getInformation().getElements(parameters, true);
-			case notCached -> elements = Information.getMyself().filterByParams(
-					parameters,
-					parent.getInformation().getExternalElements().entrySet().parallelStream()
-							.filter(keyElementEntry -> parameters.getName().isBlank()
-									|| keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
-							.map(keyElementEntry -> keyElementEntry.getValue()));
-			default -> elements = parent.getInformation().getElements(parameters, false);
-		}
-
+		Stream<Element> elements = parent.getInformation().getElements(parameters);
 		elements = elements.sorted(Comparator.comparing(Element::getKey).thenComparing(Element::getType));
 		elements = elements.peek(item -> counter.incrementAndGet());
 

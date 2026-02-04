@@ -122,7 +122,8 @@ public class Information {
         CommonParameters parameters = new CommonParameters();
         parameters.setName(e.getKey());
         parameters.setTypes(new String[]{e.getType()});
-        return getElements(parameters, false).count() > 0;
+        parameters.setUse(CommonParameters.ElementsToUse.cached);
+        return getElements(parameters).count() > 0;
     }
 
     public Element getByAddress(String address) {
@@ -139,11 +140,13 @@ public class Information {
         parameters.setExcludePackageName(excludePackageName);
         parameters.setUseArrays(includeArrays);
         parameters.setTypes(type);
+        parameters.setUse(includeExternalElements ?
+                CommonParameters.ElementsToUse.both : CommonParameters.ElementsToUse.cached);
 
-        return getElements(parameters, includeExternalElements);
+        return getElements(parameters);
     }
 
-    public Stream<Element> getElements(CommonParameters parameters, Boolean includeExternalElements) {
+    public Stream<Element> getElements(CommonParameters parameters) {
         String key = parameters.getName();
         String[] type = parameters.getTypes();
 
@@ -151,14 +154,14 @@ public class Information {
             //This is trivial, don't search through all elements
             var result = new ArrayList<Element>();
             for (String t : type) {
-                Element e = elements.get(new Key(key, t));
-                if (e != null) {
-                    result.add(e);
-                } else if (includeExternalElements) {
-                    e = elementsNotInTheCache.get(new Key(key, t));
-                    if (e != null) {
-                        result.add(e);
-                    }
+                var k = new Key(key, t);
+                if (parameters.getUse() != CommonParameters.ElementsToUse.notCached
+                        && elements.containsKey(k)) {
+                        result.add(elements.get(k));
+                }
+                if (parameters.getUse() != CommonParameters.ElementsToUse.cached
+                        && elementsNotInTheCache.containsKey(k)) {
+                    result.add(elementsNotInTheCache.get(k));
                 }
             }
             return result.parallelStream();
@@ -170,9 +173,11 @@ public class Information {
         }
 
         var tmp = new HashSet<Map.Entry<Key, Element>>();
-        tmp.addAll(elements.entrySet());
-        if (includeExternalElements) {
+        if (parameters.getUse() != CommonParameters.ElementsToUse.cached) {
             tmp.addAll(elementsNotInTheCache.entrySet());
+        }
+        if (parameters.getUse() != CommonParameters.ElementsToUse.notCached) {
+            tmp.addAll(elements.entrySet());
         }
         var result = tmp.parallelStream();
 

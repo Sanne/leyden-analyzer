@@ -82,19 +82,7 @@ class TreeCommand implements Runnable {
 			parameters.types = types.toArray(parameters.types);
 		}
 
-		List<Element> elements;
-
-		switch (parameters.use) {
-			case both -> elements = parent.getInformation().getElements(parameters, true).toList();
-			case notCached -> elements = Information.getMyself().filterByParams(
-					parameters.packageName, parameters.excludePackageName, parameters.arrays,
-					new String[]{"Class"},
-					parameters.isHeapRoot,
-					parent.getInformation().getExternalElements().entrySet().parallelStream()
-							.filter(keyElementEntry -> keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
-							.map(keyElementEntry -> keyElementEntry.getValue())).toList();
-			default -> elements = parent.getInformation().getElements(parameters, false).toList();
-		}
+		List<Element> elements = parent.getInformation().getElements(parameters).toList();
 
 		if (!elements.isEmpty()) {
 			//Should be just one, but...

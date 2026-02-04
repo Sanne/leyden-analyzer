@@ -9,6 +9,7 @@ import tooling.leyden.aotcache.Element;
 import tooling.leyden.aotcache.MethodObject;
 import tooling.leyden.aotcache.ReferencingElement;
 import tooling.leyden.commands.autocomplete.InfoCommandTypes;
+import tooling.leyden.commands.autocomplete.WhichRun;
 
 import java.text.NumberFormat;
 import java.util.*;
@@ -30,6 +31,31 @@ class InfoCommand implements Runnable {
 			defaultValue = "Summary",
 			completionCandidates = InfoCommandTypes.class)
 	private String[] whatToShow;
+
+	@CommandLine.Option(names = {"-v"},
+			arity = "0..1",
+			description = "Display inline information about each element.",
+			defaultValue = "false")
+	private Boolean verbose;
+
+	@CommandLine.Option(names = {"-tips"},
+			arity = "0..1",
+			description = "Display tips on how to explore each element.",
+			defaultValue = "false")
+	private Boolean tips;
+
+
+	private NumberFormat intFormat = NumberFormat.getIntegerInstance();
+	private AttributedStyle greenFormat =
+			AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN);
+	private AttributedStyle blueFormat =
+			AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.BLUE);
+	private AttributedStyle redFormat =
+			AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED);
+	private AttributedStyle infoFormat =
+			AttributedStyle.DEFAULT.foreground(AttributedStyle.BRIGHT);
+	private AttributedStyle tipFormat =
+			AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW);
 
 	public void run() {
 		if (shouldShow(InfoCommandTypes.Types.Configuration.name()))
@@ -80,59 +106,79 @@ class InfoCommand implements Runnable {
 		final var percentFormat = NumberFormat.getPercentInstance();
 		percentFormat.setMaximumFractionDigits(2);
 		percentFormat.setMinimumFractionDigits(2);
-		final var intFormat = NumberFormat.getIntegerInstance();
-		final var greenFormat =
-				AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN);
-		final var blueFormat =
-				AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.BLUE);
-		final var redFormat =
-				AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED);
 
 		//Get information from log
 		var extClasses = Double.valueOf(stats.getValue("[LOG] Classes not loaded from AOT Cache", -1).toString());
 		var extLambdas = Double.valueOf(stats.getValue("[LOG] Lambda Methods not loaded from AOT Cache", 0).toString());
-		var classes = Double.valueOf(stats.getValue("[LOG] Classes loaded from AOT Cache", -1).toString());
-		if (classes < 0) {
-			classes = (double) parent.getInformation().getElements(null, null, null, true, false, "Class").count();
-		}
+		var classesLog = Double.valueOf(stats.getValue("[LOG] Classes loaded from AOT Cache", -1).toString());
+
+		CommonParameters params = new CommonParameters();
+		params.setUse(CommonParameters.ElementsToUse.cached);
+		params.setUseArrays(false);
+		params.setTypes(new String[]{"Class"});
+		var classes = (double) parent.getInformation().getElements(params).count();
+
 		var lambdas = Double.valueOf(stats.getValue("[LOG] Lambda Methods loaded from AOT Cache", 0).toString());
 		final double methodsSize = parent.getInformation().getElements(null, null, null, true, false, "Method").count();
 
-		(new AttributedString("RUN SUMMARY: ", blueFormat)).println(parent.getTerminal());
+		(new AttributedString("PRODUCTION RUN: ", blueFormat)).println(parent.getTerminal());
+		printVerboseInfo("This section reflects how the production run performed.");
 		if (extClasses < 0) {
 			(new AttributedString(
-					"Loading app information is missing. Please, load a log that represents the loading of the app using the AOT Cache.",
-					redFormat))
-					.println(parent.getTerminal());
+					"Production run information is missing.", redFormat)).println(parent.getTerminal());
+			printVerboseTip("Please, load a log that represents a production run using the AOT Cache.");
+			printVerboseTip("To create the log, you should at least use the following tags: " +
+					"-Xlog:class+load=info,aot+resolve*=trace,aot+codecache+exit=debug,aot=warning:file=./.....aot.log:level,tags");
 		} else {
 			(new AttributedString("Classes loaded: ", AttributedStyle.DEFAULT)).println(parent.getTerminal());
-			printPercentages(intFormat, classes, percentFormat, extClasses, greenFormat, redFormat);
+			printVerboseInfo("Classes used during production run.");
+			printPercentage("  -> Cached:", classesLog + extClasses, percentFormat, greenFormat, classesLog);
+			printVerboseInfo("Cached classes are the ones that were loaded from the AOT Cache. " +
+					"The higher the percentage here, the better.");
+			printPercentage("  -> Not Cached:", classesLog + extClasses, percentFormat, redFormat, extClasses);
+			printVerboseInfo("Classes that were used during production that were not loaded from the AOT Cache. ");
+			printVerboseTip("You can find them with the command 'ls --loaded=production --use=notCached'. ");
 
-			(new AttributedString(
-					"Lambda Methods loaded: ",
-					AttributedStyle.DEFAULT)).println(parent.getTerminal());
-			printPercentages(intFormat, lambdas, percentFormat, extLambdas, greenFormat, redFormat);
-
-
-			if (methodsSize > 0) {
-				printPercentage("  -> Portion of methods that are lambda: ", methodsSize, percentFormat,
-						intFormat,
-						greenFormat, lambdas + extLambdas);
+			if (classes > 0) {
+				params = new CommonParameters();
+				params.setLoaded(WhichRun.training);
+				params.setUse(CommonParameters.ElementsToUse.cached);
+				params.setUseArrays(false);
+				params.setTypes(new String[]{"Class"});
+				printPercentage("  -> Cached and not used:", classes, percentFormat, greenFormat,
+						(double) parent.getInformation().getElements(params).count());
+				printVerboseInfo("These are classes that were used during training and stored on the AOT cache, but " +
+						"the production run didn't use them. They probably shouldn't have been stored. Check your " +
+						"training and look for testing classes or classes that don't belong to production configuration.");
+				printVerboseTip("You can find them with the command 'ls --loaded=training --use=cached'. ");
 			}
+
+			printPercentage("Lambda Methods: ", methodsSize, percentFormat, greenFormat, lambdas + extLambdas);
+			printVerboseInfo("How many lambda methods your production run used.");
+			printVerboseInfo("Each lambda method is represented on the JVM with an inner class.");
+			printPercentage("  -> Cached:", lambdas + extLambdas, percentFormat, greenFormat, lambdas);
+			printVerboseInfo("Cached lambda methods are the ones that were loaded from the AOT Cache. " +
+					"The higher the percentage here, the better.");
+			printPercentage("  -> Not Cached:", lambdas + extLambdas, percentFormat, redFormat, extLambdas);
+			printVerboseInfo("Lambda methods used in production but not cached. Sometimes there are issues storing " +
+					"specific classes and methods. Check for warnings with the warning command.");
+
 
 			Integer aotCodeEntries =
 					Integer.valueOf(stats.getValue("[LOG] [CodeCache] Loaded AOT code entries", -1).toString());
+			printVerboseInfo("Summarized information of what has been used from the Code Cache.");
 			if (aotCodeEntries > 0) {
 				(new AttributedString(
 						"Code Entries: " + aotCodeEntries, AttributedStyle.DEFAULT)).println(parent.getTerminal());
-				printPercentage("  -> Adapters: ", aotCodeEntries.doubleValue(), percentFormat, intFormat, greenFormat,
+				printVerboseInfo("Total number of entries loaded from the Code Cache.");
+				printPercentage("  -> Adapters: ", aotCodeEntries.doubleValue(), percentFormat, greenFormat,
 						Double.valueOf(stats.getValue("[LOG] [CodeCache] Loaded Adapters", 0).toString()));
-				printPercentage("  -> Shared Blobs: ", aotCodeEntries.doubleValue(), percentFormat, intFormat,
+				printPercentage("  -> Shared Blobs: ", aotCodeEntries.doubleValue(), percentFormat,
 						greenFormat,
 						Double.valueOf(stats.getValue("[LOG] [CodeCache] Loaded Shared Blobs", 0).toString()));
-				printPercentage("  -> C1 Blobs: ", aotCodeEntries.doubleValue(), percentFormat, intFormat,
+				printPercentage("  -> C1 Blobs: ", aotCodeEntries.doubleValue(), percentFormat,
 						greenFormat, Double.valueOf(stats.getValue("[LOG] [CodeCache] Loaded C1 Blobs", 0).toString()));
-				printPercentage("  -> C2 Blobs: ", aotCodeEntries.doubleValue(), percentFormat, intFormat,
+				printPercentage("  -> C2 Blobs: ", aotCodeEntries.doubleValue(), percentFormat,
 						greenFormat, Double.valueOf(stats.getValue("[LOG] [CodeCache] Loaded C2 Blobs", 0).toString()));
 				(new AttributedString(
 						"AOT code cache size: " + stats.getValue("[LOG] [CodeCache] AOT code cache size", 0),
@@ -140,11 +186,14 @@ class InfoCommand implements Runnable {
 			}
 		}
 
-		(new AttributedString("AOT CACHE SUMMARY: ", blueFormat)).println(parent.getTerminal());
+		(new AttributedString("AOT CACHE: ", blueFormat)).println(parent.getTerminal());
+		printVerboseInfo("Information on this section reflects what is inside the AOT Cache and how did the training " +
+				"run perform.");
 
 		if (classes < 1) {
-			(new AttributedString("Classes information is missing. Please, load an aot map.", redFormat))
+			(new AttributedString("Classes information is missing.", redFormat))
 					.println(parent.getTerminal());
+			printVerboseTip("Please, load an aot map file generated with -Xlog:aot+map=trace,aot+map+oops=trace:file=[...]aot.map:none:filesize=0 .");
 		} else {
 
 			Long trainingData =
@@ -153,30 +202,43 @@ class InfoCommand implements Runnable {
 							.filter(ktd -> !((ReferencingElement) ktd).getReferences().isEmpty())
 							.count();
 
-			(new AttributedString("Classes in AOT Cache: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
+			(new AttributedString("Metadata: ", AttributedStyle.DEFAULT)).println(parent.getTerminal());
+			printVerboseInfo("This is the information derived from the bytecode about classes, methods, and their relationships.");
+			printVerboseInfo("It could be those classes and methods were used, or just referenced from, during training run.");
+			(new AttributedString(" - Classes in AOT Cache: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
 			(new AttributedString(intFormat.format(classes), greenFormat)).println(parent.getTerminal());
-			printPercentage("  -> KlassTrainingData: ", classes.doubleValue(), percentFormat, intFormat, greenFormat,
+			printVerboseInfo("These are classes that were loaded during training run and stored on the AOT cache.");
+			printVerboseTip("You can find them with the command 'ls --use=cached -t=Class'. ");
+			printPercentage("    -> KlassTrainingData: ", classes, percentFormat, greenFormat,
 					trainingData.doubleValue());
-			(new AttributedString("Objects in AOT Cache: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
+			printVerboseInfo("This reflects how many classes have been trained.");
+			(new AttributedString(" - Objects in AOT Cache: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
 			CommonParameters parameters = new CommonParameters();
 			parameters.setUseArrays(true);
 			parameters.setTypes(new String[]{"Object"});
-			Long objectCount = parent.getInformation().getElements(parameters, false).count();
+			parameters.setUse(CommonParameters.ElementsToUse.cached);
+			Long objectCount = parent.getInformation().getElements(parameters).count();
 			(new AttributedString(intFormat.format(objectCount), greenFormat)).println(parent.getTerminal());
+			printVerboseInfo("Objects are instances from classes that we were able to store on the AOT Cache.");
+			printVerboseTip("You can find them with the command 'ls -t=Object'. ");
 			if (objectCount > 0) {
 				parameters.setShowAOTInited(true);
-				Long aotInited = parent.getInformation().getElements(parameters, false).count();
-				printPercentage("  -> AOT-inited: ", objectCount.doubleValue(), percentFormat, intFormat, greenFormat,
+				Long aotInited = parent.getInformation().getElements(parameters).count();
+				printPercentage("    -> AOT-inited: ", objectCount.doubleValue(), percentFormat, greenFormat,
 						aotInited.doubleValue());
-				parameters.setShowAOTInited(false);
+				printVerboseInfo("Instances that are already cl-inited, like setting up static fields.");
+				printVerboseTip("You can find them with the command 'ls --showAOTInited=true -t=Object'. ");
+				parameters.setShowAOTInited(null);
 				parameters.setInstanceOf("java.lang.Class");
-				Long classInstances = parent.getInformation().getElements(parameters, false).count();
-				printPercentage("  -> java.lang.Class instances: ", objectCount.doubleValue(), percentFormat, intFormat, greenFormat,
+				Long classInstances = parent.getInformation().getElements(parameters).count();
+				printPercentage("    -> java.lang.Class instances: ", objectCount.doubleValue(), percentFormat, greenFormat,
 						classInstances.doubleValue());
+				printVerboseTip("You can find them with the command 'ls --instanceOf=java.lang.Class'. ");
 				parameters.setInstanceOf("java.lang.String");
-				Long stringInstances = parent.getInformation().getElements(parameters, false).count();
-				printPercentage("  -> java.lang.String instances: ", objectCount.doubleValue(), percentFormat, intFormat, greenFormat,
+				Long stringInstances = parent.getInformation().getElements(parameters).count();
+				printPercentage("    -> java.lang.String instances: ", objectCount.doubleValue(), percentFormat, greenFormat,
 						stringInstances.doubleValue());
+				printVerboseTip("You can find them with the command 'ls --instanceOf=java.lang.String'. ");
 			}
 		}
 
@@ -203,15 +265,19 @@ class InfoCommand implements Runnable {
 							.filter(ktd -> !((ReferencingElement) ktd).getReferences().isEmpty())
 							.count();
 
-			(new AttributedString("Methods in AOT Cache: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
+			(new AttributedString(" - Methods in AOT Cache: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
 			(new AttributedString(intFormat.format(methodsSize), greenFormat)).println(parent.getTerminal());
+			printVerboseInfo("Methods whose metadata has been stored on the Cache.");
 
-			printPercentage("  -> MethodCounters: ", methodsSize, percentFormat, intFormat, greenFormat,
+			printPercentage("    -> MethodCounters: ", methodsSize, percentFormat, greenFormat,
 					methodCounters.doubleValue());
-			printPercentage("  -> MethodData: ", methodsSize, percentFormat, intFormat, greenFormat,
+			printVerboseInfo("How many of those methods were run a significant amount of times.");
+			printPercentage("    -> MethodData: ", methodsSize, percentFormat, greenFormat,
 					methodData.doubleValue());
-			printPercentage("  -> MethodTrainingData: ", methodsSize, percentFormat, intFormat, greenFormat,
+			printPercentage("    -> MethodTrainingData: ", methodsSize, percentFormat, greenFormat,
 					methodTrainingData.doubleValue());
+			printVerboseInfo("MethodData and MethodTrainingData shows how many of those methods were profiled " +
+					"and to what extent.");
 
 			Map<Integer, Integer> compilationLevels = new HashMap<>();
 			parent.getInformation().getElements(null, null, null, true, false, "Method")
@@ -225,45 +291,50 @@ class InfoCommand implements Runnable {
 
 			(new AttributedString("  -> CompileTrainingData: ",
 					AttributedStyle.DEFAULT)).println(parent.getTerminal());
+			printVerboseInfo("Information to compile methods to different levels/tiers of compilation.");
 			for (Integer level : compilationLevels.keySet().stream().sorted().toList()) {
-				printPercentage("      -> Level " + level + ": ", methodsSize, percentFormat, intFormat,
+				printPercentage("      -> Level " + level + ": ", methodsSize, percentFormat,
 						greenFormat, Double.valueOf(compilationLevels.get(level)));
 			}
+			printVerboseInfo("The same method could store information to compile on more than one level. " +
+					"Percentages reflect the percentage of methods compiled to this level.");
+			printVerboseTip("You can find compilation levels of any method with the command " +
+					"'describe -t=Method -i=\"void com.example.Class.method(com.example.Argument, com.example.Argument2)\"'.");
+
 		}
 
 		var aotCodeEntries = (Double) stats.getValue("[CodeCache] AOT Code Entries", -1.0);
 		if (aotCodeEntries > 0) {
 
-			(new AttributedString("Code Cache: ",
-					AttributedStyle.DEFAULT)).println(parent.getTerminal());
+			(new AttributedString("Code Cache: ", AttributedStyle.DEFAULT)).println(parent.getTerminal());
 
 			printPercentage("  -> None: ", aotCodeEntries,
-					percentFormat, intFormat, greenFormat,  (Double) stats.getValue("[CodeCache] None", 0.0));
+					percentFormat, greenFormat,  (Double) stats.getValue("[CodeCache] None", 0.0));
 			printPercentage("  -> Adapter: ", aotCodeEntries,
-					percentFormat, intFormat, greenFormat,  (Double) stats.getValue("[CodeCache] Adapter", 0.0));
+					percentFormat, greenFormat,  (Double) stats.getValue("[CodeCache] Adapter", 0.0));
 			printPercentage("  -> Stub: ", aotCodeEntries,
-					percentFormat, intFormat, greenFormat,  (Double) stats.getValue("[CodeCache] Stub", 0.0));
+					percentFormat, greenFormat,  (Double) stats.getValue("[CodeCache] Stub", 0.0));
 			printPercentage("  -> SharedBlob: ", aotCodeEntries,
-					percentFormat, intFormat, greenFormat,  (Double) stats.getValue("[CodeCache] SharedBlob", 0.0));
+					percentFormat, greenFormat,  (Double) stats.getValue("[CodeCache] SharedBlob", 0.0));
 			printPercentage("  -> C1Blob: ", aotCodeEntries,
-					percentFormat, intFormat, greenFormat,  (Double) stats.getValue("[CodeCache] C1Blob", 0.0));
+					percentFormat, greenFormat,  (Double) stats.getValue("[CodeCache] C1Blob", 0.0));
 			printPercentage("  -> C2Blob: ", aotCodeEntries,
-					percentFormat, intFormat, greenFormat,  (Double) stats.getValue("[CodeCache] C2Blob", 0.0));
+					percentFormat, greenFormat,  (Double) stats.getValue("[CodeCache] C2Blob", 0.0));
 			var nmethod = (Double) stats.getValue("[CodeCache] Nmethod", 0.0);
-			printPercentage("  -> Nmethod: ", aotCodeEntries, percentFormat, intFormat, greenFormat,  nmethod);
+			printPercentage("  -> Nmethod: ", aotCodeEntries, percentFormat, greenFormat,  nmethod);
 			if (nmethod > 0) {
 				printPercentage("     - Tier 0: ", nmethod,
-						percentFormat, intFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 0", 0.0));
+						percentFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 0", 0.0));
 				printPercentage("     - Tier 1: ", nmethod,
-						percentFormat, intFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 1", 0.0));
+						percentFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 1", 0.0));
 				printPercentage("     - Tier 2: ", nmethod,
-						percentFormat, intFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 2", 0.0));
+						percentFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 2", 0.0));
 				printPercentage("     - Tier 3: ", nmethod,
-						percentFormat, intFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 3", 0.0));
+						percentFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 3", 0.0));
 				printPercentage("     - Tier 4: ", nmethod,
-						percentFormat, intFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 4", 0.0));
+						percentFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 4", 0.0));
 				printPercentage("     - Tier 5: ", nmethod,
-						percentFormat, intFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 5", 0.0));
+						percentFormat, greenFormat, (Double) stats.getValue("[CodeCache] Nmethod Tier 5", 0.0));
 			}
 			(new AttributedString("  -> Entries: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
 			(new AttributedString(intFormat.format(aotCodeEntries), greenFormat)).println(parent.getTerminal());
@@ -273,80 +344,25 @@ class InfoCommand implements Runnable {
 					stats.getValue("[CodeCache] Cache Size", "unknown").toString(), greenFormat))
 					.println(parent.getTerminal());
 		}
-
-
-
-
-
-//		(new AttributedString("Symbol: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-//		(new AttributedString(intFormat.format(
-//				parent.getInformation().getElements(null, null, null, true, false, "Symbol").size()), greenFormat)).println(parent.getTerminal());
-
-//		Integer constantPool =
-//				parent.getInformation().getElements(null, null, null, true, false, "ConstantPool").size();
-//
-//		if (constantPool > 0) {
-//			(new AttributedString("ConstantPool elements: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-//			(new AttributedString(intFormat.format(constantPool), greenFormat)).println(parent.getTerminal());
-//		} else {
-//			(new AttributedString("ConstantPool information is missing. Please, load an aot map.", redFormat))
-//					.println(parent.getTerminal());
-//		}
-
-
-//		(new AttributedString("Type Arrays: ", AttributedStyle.DEFAULT)).println(parent.getTerminal());
-//		parent.getInformation().getAllTypes().stream().filter(t -> t.startsWith("TypeArray")).sorted().forEachOrdered(type -> {
-//			(new AttributedString("  -> " + type + ": ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-//			(new AttributedString(
-//					intFormat.format(
-//							parent.getInformation()
-//									.getElements(null, null, null, true, false, type)
-//									.size()), greenFormat)).println(parent.getTerminal());
-//		});
-
-
-//		(new AttributedString("Adapters: ", AttributedStyle.DEFAULT)).println(parent.getTerminal());
-//		(new AttributedString("  -> AdapterFingerPrint: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-//		(new AttributedString(
-//				intFormat.format(
-//						parent.getInformation()
-//								.getElements(null, null, null, true, false, "AdapterFingerPrint")
-//								.count()), greenFormat)).println(parent.getTerminal());
-//		(new AttributedString("  -> AdapterHandlerEntry: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-//		(new AttributedString(
-//				intFormat.format(
-//						parent.getInformation()
-//								.getElements(null, null, null, true, false, "AdapterHandlerEntry")
-//								.count()), greenFormat)).println(parent.getTerminal());
-
-//		(new AttributedString("RecordComponent: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-//		(new AttributedString(intFormat.format(
-//				parent.getInformation().getElements(null, null, null, true, false, "RecordComponent").count()), greenFormat)).println(parent.getTerminal());
-
-//		(new AttributedString("Annotations: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-//		(new AttributedString(intFormat.format(
-//				parent.getInformation().getElements(null, null, null, true, false, "Annotations").size()),
-//				greenFormat)).println(parent.getTerminal());
-
-
-//		(new AttributedString("Misc Data: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-//		(new AttributedString(intFormat.format(parent.getInformation()
-//				.getElements(null, null, null, true, false, "Misc-data")
-//				.count()), greenFormat)).println(parent.getTerminal());
-
 	}
 
-	private void printPercentage(String title, Double total, NumberFormat percentFormat, NumberFormat intFormat,
+	private void printVerboseInfo(String info) {
+		if (verbose) {
+			(new AttributedString("  ℹ\uFE0F   " + info, infoFormat)).println(parent.getTerminal());
+		}
+	}
+	private void printVerboseTip(String info) {
+		if (tips) {
+			(new AttributedString("  \uD83D\uDCA1  " + info, tipFormat)).println(parent.getTerminal());
+		}
+	}
+
+	private void printPercentage(String title, Double total, NumberFormat percentFormat,
 								 AttributedStyle numStyle, Double partial) {
 		(new AttributedString(title, AttributedStyle.DEFAULT)).print(parent.getTerminal());
 		(new AttributedString(intFormat.format(partial), numStyle)).print(parent.getTerminal());
 		(new AttributedString(" (", AttributedStyle.DEFAULT)).print(parent.getTerminal());
 		(new AttributedString(percentFormat.format(partial / total), numStyle)).print(parent.getTerminal());
 		(new AttributedString(")", AttributedStyle.DEFAULT)).println(parent.getTerminal());
-	}
-
-	private void printPercentages(NumberFormat intFormat, Double cached, NumberFormat percentFormat, Double notCached, AttributedStyle greenFormat, AttributedStyle redFormat) {
-		printPercentage("  -> Cached:", cached + notCached, percentFormat, intFormat, greenFormat, cached);
-		printPercentage("  -> Not Cached:", cached + notCached, percentFormat, intFormat, redFormat, notCached);
 	}
 }

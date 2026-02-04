@@ -33,19 +33,7 @@ class DescribeCommand implements Runnable {
 
 	public void run() {
 
-		List<Element> elements;
-
-		switch (parameters.use) {
-			case notCached ->
-					elements = Information.getMyself().filterByParams(
-							parameters,
-							parent.getInformation().getExternalElements().entrySet().parallelStream()
-									.filter(keyElementEntry -> parameters.getName().isBlank()
-											|| keyElementEntry.getKey().identifier().equalsIgnoreCase(parameters.getName()))
-									.map(keyElementEntry -> keyElementEntry.getValue())).toList();
-			case cached -> elements = parent.getInformation().getElements(parameters, false).toList();
-			default -> elements = parent.getInformation().getElements(parameters, true).toList();
-		}
+		List<Element> elements = parent.getInformation().getElements(parameters).toList();
 
 		AttributedStringBuilder sb = new AttributedStringBuilder();
 		if (!elements.isEmpty()) {
