@@ -41,6 +41,8 @@ public class LoadFileCommand implements Runnable {
 			scope = CommandLine.ScopeType.INHERIT)
 	protected Boolean background = false;
 
+	private Thread.Builder builder = Thread.ofVirtual().name("loading-file-", 0);
+
 	public void run() {
 	}
 
@@ -91,8 +93,8 @@ public class LoadFileCommand implements Runnable {
 
 	private void loadWithBackground(Parser consumer, Path p) {
 		if (background) {
-			new Thread(() -> load(p, consumer)).start();
-		} else {
+			builder.start(() -> load(p, consumer));
+        } else {
 			load(p, consumer);
 		}
 	}
