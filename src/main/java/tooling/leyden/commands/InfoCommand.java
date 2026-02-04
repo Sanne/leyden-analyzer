@@ -13,6 +13,7 @@ import tooling.leyden.commands.autocomplete.WhichRun;
 
 import java.text.NumberFormat;
 import java.util.*;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -68,7 +69,10 @@ class InfoCommand implements Runnable {
 	}
 
 	public void count() {
-		Stream<Element> elements = parent.getInformation().getElements(null, null, null, true, true, null);
+		CommonParameters params = new CommonParameters();
+		params.setUse(CommonParameters.ElementsToUse.both);
+		params.setUseArrays(true);
+		Stream<Element> elements = parent.getInformation().getElements(params);
 		final var counts = new HashMap<String, AtomicInteger>();
 
 		elements.forEach(item -> {
@@ -116,13 +120,65 @@ class InfoCommand implements Runnable {
 		params.setUse(CommonParameters.ElementsToUse.cached);
 		params.setUseArrays(false);
 		params.setTypes(new String[]{"Class"});
-		var classes = (double) parent.getInformation().getElements(params).count();
+		var futureClasses = parent.getInformation().getFutureElements(params);
+		params = new CommonParameters();
+		params.setLoaded(WhichRun.training);
+		params.setUse(CommonParameters.ElementsToUse.cached);
+		params.setUseArrays(false);
+		params.setTypes(new String[]{"Class"});
+		var futureClassesCachedNotUsed = parent.getInformation().getFutureElements(params);
+		params = new CommonParameters();
+		params.setUseArrays(true);
+		params.setTypes(new String[]{"Object"});
+		params.setUse(CommonParameters.ElementsToUse.cached);
+		var futureObjectCount = parent.getInformation().getFutureElements(params);
+		params = new CommonParameters();
+		params.setUseArrays(true);
+		params.setTypes(new String[]{"Object"});
+		params.setUse(CommonParameters.ElementsToUse.cached);
+		params.setShowAOTInited(true);
+		var futureAotInited = parent.getInformation().getFutureElements(params);
+		params = new CommonParameters();
+		params.setUseArrays(true);
+		params.setTypes(new String[]{"Object"});
+		params.setUse(CommonParameters.ElementsToUse.cached);
+		params.setShowAOTInited(null);
+		params.setInstanceOf("java.lang.Class");
+		var futureClassInstances = parent.getInformation().getFutureElements(params);
+		params = new CommonParameters();
+		params.setUseArrays(true);
+		params.setTypes(new String[]{"Object"});
+		params.setUse(CommonParameters.ElementsToUse.cached);
+		params.setShowAOTInited(null);
+		params.setInstanceOf("java.lang.String");
+		var futureStringInstances = parent.getInformation().getFutureElements(params);
+		params = new CommonParameters();
+		params.setTypes(new String[] {"Method"});
+		params.setUse(CommonParameters.ElementsToUse.cached);
+		var futureMethodsSize = parent.getInformation().getFutureElements(params);
+		params = new CommonParameters();
+		params.setUse(CommonParameters.ElementsToUse.cached);
+		params.setTypes(new String[]{"KlassTrainingData"});
+		var futureKlassTrainingData = parent.getInformation().getFutureElements(params);
+		params = new CommonParameters();
+		params.setUse(CommonParameters.ElementsToUse.cached);
+		params.setTypes(new String[] {"MethodCounters"});
+		var futureMethodCounters = parent.getInformation().getFutureElements(params);
+		params = new CommonParameters();
+		params.setUse(CommonParameters.ElementsToUse.cached);
+		params.setTypes(new String[] {"MethodData"});
+		var futureMethodData = parent.getInformation().getFutureElements(params);
+		params = new CommonParameters();
+		params.setUse(CommonParameters.ElementsToUse.cached);
+		params.setTypes(new String[] {"MethodTrainingData"});
+		var futureMethodTrainingData = parent.getInformation().getFutureElements(params);
 
 		var lambdas = Double.valueOf(stats.getValue("[LOG] Lambda Methods loaded from AOT Cache", 0).toString());
-		final double methodsSize = parent.getInformation().getElements(null, null, null, true, false, "Method").count();
+		final double methodsSize = getFutureDouble(futureMethodsSize);
 
 		(new AttributedString("PRODUCTION RUN: ", blueFormat)).println(parent.getTerminal());
 		printVerboseInfo("This section reflects how the production run performed.");
+		double classes = getFutureDouble(futureClasses);
 		if (extClasses < 0) {
 			(new AttributedString(
 					"Production run information is missing.", redFormat)).println(parent.getTerminal());
@@ -140,13 +196,8 @@ class InfoCommand implements Runnable {
 			printVerboseTip("You can find them with the command 'ls --loaded=production --use=notCached'. ");
 
 			if (classes > 0) {
-				params = new CommonParameters();
-				params.setLoaded(WhichRun.training);
-				params.setUse(CommonParameters.ElementsToUse.cached);
-				params.setUseArrays(false);
-				params.setTypes(new String[]{"Class"});
 				printPercentage("  -> Cached and not used:", classes, percentFormat, greenFormat,
-						(double) parent.getInformation().getElements(params).count());
+						getFutureDouble(futureClassesCachedNotUsed));
 				printVerboseInfo("These are classes that were used during training and stored on the AOT cache, but " +
 						"the production run didn't use them. They probably shouldn't have been stored. Check your " +
 						"training and look for testing classes or classes that don't belong to production configuration.");
@@ -195,13 +246,6 @@ class InfoCommand implements Runnable {
 					.println(parent.getTerminal());
 			printVerboseTip("Please, load an aot map file generated with -Xlog:aot+map=trace,aot+map+oops=trace:file=[...]aot.map:none:filesize=0 .");
 		} else {
-
-			Long trainingData =
-					parent.getInformation().getElements(null, null, null, true, false, "KlassTrainingData")
-							//Remove the training data that is not linked to anything
-							.filter(ktd -> !((ReferencingElement) ktd).getReferences().isEmpty())
-							.count();
-
 			(new AttributedString("Metadata: ", AttributedStyle.DEFAULT)).println(parent.getTerminal());
 			printVerboseInfo("This is the information derived from the bytecode about classes, methods, and their relationships.");
 			printVerboseInfo("It could be those classes and methods were used, or just referenced from, during training run.");
@@ -210,43 +254,28 @@ class InfoCommand implements Runnable {
 			printVerboseInfo("These are classes that were loaded during training run and stored on the AOT cache.");
 			printVerboseTip("You can find them with the command 'ls --use=cached -t=Class'. ");
 			printPercentage("    -> KlassTrainingData: ", classes, percentFormat, greenFormat,
-					trainingData.doubleValue());
+					getFutureDouble(futureKlassTrainingData));
 			printVerboseInfo("This reflects how many classes have been trained.");
 			(new AttributedString(" - Objects in AOT Cache: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
-			CommonParameters parameters = new CommonParameters();
-			parameters.setUseArrays(true);
-			parameters.setTypes(new String[]{"Object"});
-			parameters.setUse(CommonParameters.ElementsToUse.cached);
-			Long objectCount = parent.getInformation().getElements(parameters).count();
+			var objectCount = getFutureDouble(futureObjectCount);
 			(new AttributedString(intFormat.format(objectCount), greenFormat)).println(parent.getTerminal());
 			printVerboseInfo("Objects are instances from classes that we were able to store on the AOT Cache.");
 			printVerboseTip("You can find them with the command 'ls -t=Object'. ");
 			if (objectCount > 0) {
-				parameters.setShowAOTInited(true);
-				Long aotInited = parent.getInformation().getElements(parameters).count();
-				printPercentage("    -> AOT-inited: ", objectCount.doubleValue(), percentFormat, greenFormat,
-						aotInited.doubleValue());
+				printPercentage("    -> AOT-inited: ", objectCount, percentFormat, greenFormat,
+						getFutureDouble(futureAotInited));
 				printVerboseInfo("Instances that are already cl-inited, like setting up static fields.");
 				printVerboseTip("You can find them with the command 'ls --showAOTInited=true -t=Object'. ");
-				parameters.setShowAOTInited(null);
-				parameters.setInstanceOf("java.lang.Class");
-				Long classInstances = parent.getInformation().getElements(parameters).count();
-				printPercentage("    -> java.lang.Class instances: ", objectCount.doubleValue(), percentFormat, greenFormat,
-						classInstances.doubleValue());
+				printPercentage("    -> java.lang.Class instances: ", objectCount, percentFormat, greenFormat,
+						getFutureDouble(futureClassInstances));
 				printVerboseTip("You can find them with the command 'ls --instanceOf=java.lang.Class'. ");
-				parameters.setInstanceOf("java.lang.String");
-				Long stringInstances = parent.getInformation().getElements(parameters).count();
-				printPercentage("    -> java.lang.String instances: ", objectCount.doubleValue(), percentFormat, greenFormat,
-						stringInstances.doubleValue());
+				printPercentage("    -> java.lang.String instances: ", objectCount, percentFormat, greenFormat,
+						getFutureDouble(futureStringInstances));
 				printVerboseTip("You can find them with the command 'ls --instanceOf=java.lang.String'. ");
 			}
 		}
 
-		Long methodCounters =
-				parent.getInformation().getElements(null, null, null, true, false, "MethodCounters")                        //Remove the training data that is not linked to anything
-						.filter(ktd -> !((ReferencingElement) ktd).getReferences().isEmpty())
-						.count();
-
+		var methodCounters = getFutureDouble(futureMethodCounters);
 		if (methodCounters < 1) {
 			(new AttributedString(
 					"Method training information is missing. " +
@@ -256,26 +285,17 @@ class InfoCommand implements Runnable {
 							"If you are using JDK25, please upgrade your JDK to get this information.", redFormat))
 					.println(parent.getTerminal());
 		} else {
-			Long methodData =
-					parent.getInformation().getElements(null, null, null, true, false, "MethodData")                        //Remove the training data that is not linked to anything
-							.filter(ktd -> !((ReferencingElement) ktd).getReferences().isEmpty())
-							.count();
-			Long methodTrainingData =
-					parent.getInformation().getElements(null, null, null, true, false, "MethodTrainingData")                        //Remove the training data that is not linked to anything
-							.filter(ktd -> !((ReferencingElement) ktd).getReferences().isEmpty())
-							.count();
-
 			(new AttributedString(" - Methods in AOT Cache: ", AttributedStyle.DEFAULT)).print(parent.getTerminal());
 			(new AttributedString(intFormat.format(methodsSize), greenFormat)).println(parent.getTerminal());
 			printVerboseInfo("Methods whose metadata has been stored on the Cache.");
 
 			printPercentage("    -> MethodCounters: ", methodsSize, percentFormat, greenFormat,
-					methodCounters.doubleValue());
+					methodCounters);
 			printVerboseInfo("How many of those methods were run a significant amount of times.");
 			printPercentage("    -> MethodData: ", methodsSize, percentFormat, greenFormat,
-					methodData.doubleValue());
+					getFutureDouble(futureMethodData));
 			printPercentage("    -> MethodTrainingData: ", methodsSize, percentFormat, greenFormat,
-					methodTrainingData.doubleValue());
+					getFutureDouble(futureMethodTrainingData));
 			printVerboseInfo("MethodData and MethodTrainingData shows how many of those methods were profiled " +
 					"and to what extent.");
 
@@ -344,6 +364,16 @@ class InfoCommand implements Runnable {
 					stats.getValue("[CodeCache] Cache Size", "unknown").toString(), greenFormat))
 					.println(parent.getTerminal());
 		}
+	}
+
+	private static double getFutureDouble(Future<Stream<Element>> future) {
+		double count;
+		try {
+			count = (double) future.get().count();
+		} catch (Exception e) {
+			count = -1;
+		}
+		return count;
 	}
 
 	private void printVerboseInfo(String info) {

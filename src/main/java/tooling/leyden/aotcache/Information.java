@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
 public class Information {
@@ -39,6 +42,8 @@ public class Information {
     //To find Heap Roots
     private Set<String> heapRootAddresses = Collections.synchronizedSet(new HashSet<>());
     private ReferencingElement heapRoot = null;
+
+    private ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
     //Singletonish
     private static Information myself;
@@ -144,6 +149,10 @@ public class Information {
                 CommonParameters.ElementsToUse.both : CommonParameters.ElementsToUse.cached);
 
         return getElements(parameters);
+    }
+
+    public Future<Stream<Element>> getFutureElements(CommonParameters parameters) {
+        return executorService.submit(() -> getElements(parameters));
     }
 
     public Stream<Element> getElements(CommonParameters parameters) {
