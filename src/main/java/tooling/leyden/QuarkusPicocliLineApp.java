@@ -18,6 +18,7 @@ import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.Status;
@@ -26,10 +27,13 @@ import picocli.shell.jline3.PicocliCommands;
 import picocli.shell.jline3.PicocliCommands.PicocliCommandsFactory;
 import tooling.leyden.aotcache.Information;
 import tooling.leyden.commands.DefaultCommand;
+import tooling.leyden.commands.LoadFileCommand;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
@@ -45,28 +49,36 @@ public class QuarkusPicocliLineApp implements Runnable, QuarkusApplication {
 	private static Status status;
 	private static Information information;
 
-	public static void updateStatus() {
-		if (status != null && information != null) {
-			AttributedStringBuilder asb = new AttributedStringBuilder();
-			// Update the status line
-			asb.append("Our Playground contains: ");
+    private static List<StatusMessage> statusMessages = Collections.synchronizedList(new ArrayList<>());
 
-			asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN))
-					.append(information.getAll().size() + " elements");
-			asb.style(AttributedStyle.DEFAULT).append(" | ");
-			asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN))
-					.append(information.getAllPackages().size() + " packages");
-			asb.style(AttributedStyle.DEFAULT).append(" | ");
-			asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN))
-					.append(information.getAllTypes().size() + " element types");
-			asb.style(AttributedStyle.DEFAULT).append(" | ");
-			asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))
-					.append(information.getWarnings().size() + " warnings")
-					.toAttributedString();
+    public static void addStatusMessage(StatusMessage sm) {
+        statusMessages.add(sm);
+    }
 
-			status.update(Collections.singletonList(asb.toAttributedString()));
-		}
-	}
+    public static void updateStatus() {
+        List<AttributedString> statusList = new ArrayList<>();
+        statusMessages.removeIf(sm -> sm.timestamp() < System.currentTimeMillis() - 1000 * 10);
+        for (StatusMessage sm : statusMessages) {
+            statusList.add(sm.message());
+        }
+
+        AttributedStringBuilder asb = new AttributedStringBuilder();
+        asb.append("Our Playground contains: ");
+        asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN))
+                .append(information.getAll().size() + " assets");
+        asb.style(AttributedStyle.DEFAULT).append(" | ");
+        asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN))
+                .append(information.getAllPackages().size() + " packages");
+        asb.style(AttributedStyle.DEFAULT).append(" | ");
+        asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN))
+                .append(information.getAllTypes().size() + " asset types");
+        asb.style(AttributedStyle.DEFAULT).append(" | ");
+        asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))
+                .append(information.getWarnings().size() + " warnings")
+                .toAttributedString();
+        statusList.add(asb.toAttributedString());
+        status.update(statusList, true);
+    }
 
 	@Override
 	public void run() {
@@ -93,10 +105,10 @@ public class QuarkusPicocliLineApp implements Runnable, QuarkusApplication {
 				systemRegistry.setCommandRegistries(builtins, picocliCommands);
 				systemRegistry.register("help", picocliCommands);
 
-				status = Status.getStatus(terminal);
-				new Thread(() ->
-						Executors.newScheduledThreadPool(1)
-								.scheduleAtFixedRate(() -> updateStatus(), 0, 1, SECONDS)).start();
+                status = Status.getStatus(terminal);
+                status.setBorder(true);
+                Executors.newSingleThreadScheduledExecutor()
+                        .scheduleWithFixedDelay(() -> updateStatus(), 0, 5, SECONDS);
 
 				final var historyFileName = ".leyden-analyzer.history";
 				LineReader reader = LineReaderBuilder.builder()

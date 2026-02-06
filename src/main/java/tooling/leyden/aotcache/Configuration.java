@@ -1,5 +1,10 @@
 package tooling.leyden.aotcache;
 
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStyle;
+import tooling.leyden.QuarkusPicocliLineApp;
+import tooling.leyden.StatusMessage;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,7 +15,9 @@ public class Configuration {
 
 	public void addValue(String key, Object value) {
 		if (configuration.containsKey(key) && !configuration.get(key).equals(value)) {
-			System.out.println("Rewriting value for '" + key + "' previously it was '" + configuration.get(key) + "'.");
+			QuarkusPicocliLineApp.addStatusMessage(new StatusMessage(System.currentTimeMillis(),
+					new AttributedString("Rewriting value for '" + key + "' previously it was '" + configuration.get(key) + "'.",
+							AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED))));
 		}
 		configuration.put(key.trim(), value);
 	}

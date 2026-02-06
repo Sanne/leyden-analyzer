@@ -1,9 +1,12 @@
 package tooling.leyden.commands;
 
+import io.quarkus.runtime.Quarkus;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import tooling.leyden.QuarkusPicocliLineApp;
+import tooling.leyden.StatusMessage;
 import tooling.leyden.commands.logparser.AOTMapParser;
 import tooling.leyden.commands.logparser.Parser;
 import tooling.leyden.commands.logparser.ProductionLogParser;
@@ -15,6 +18,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Scanner;
 import java.util.stream.Stream;
 
@@ -74,15 +80,16 @@ public class LoadFileCommand implements Runnable {
 						startPath += fileSeparator;
 					}
 
-					PathMatcher pathMatcher =
-							FileSystems.getDefault().getPathMatcher("glob:" + startPath + filePath);
-					try (Stream<Path> pathStream = Files.find(Path.of(startPath), Integer.MAX_VALUE,
-							(path, f) -> pathMatcher.matches(path))) {
-						pathStream.forEach(p -> loadWithBackground(consumer, p));
-					} catch (Exception e) {
-						(new AttributedString("ERROR: Loading '" + file + "': " + e.getMessage(),
-								AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED))).println(parent.getTerminal());
-					}
+                    PathMatcher pathMatcher =
+                            FileSystems.getDefault().getPathMatcher("glob:" + startPath + filePath);
+                    try (Stream<Path> pathStream = Files.find(Path.of(startPath), Integer.MAX_VALUE,
+                            (path, f) -> pathMatcher.matches(path))) {
+                        pathStream.forEach(p -> loadWithBackground(consumer, p));
+                    } catch (Exception e) {
+                        QuarkusPicocliLineApp.addStatusMessage(new StatusMessage(System.currentTimeMillis(),
+                                new AttributedString("ERROR: Loading '" + file + "': " + e.getMessage(),
+                                        AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED))));
+                    }
 
 				} else {
 					loadWithBackground(consumer, file);
@@ -99,53 +106,46 @@ public class LoadFileCommand implements Runnable {
 		}
 	}
 
-	private void load(Path path, Parser consumer) {
-		long time = System.currentTimeMillis();
-		parent.getOut().println("Adding " + path.getFileName()
-				+ "(" + path.toAbsolutePath() + ")"
-				+ (background ? " in background " : " ")
-				+ "to our analysis...");
+    private void load(Path path, Parser consumer) {
+        long time = System.currentTimeMillis();
+        QuarkusPicocliLineApp.addStatusMessage(new StatusMessage(System.currentTimeMillis(),
+                new AttributedString("Adding " + path.getFileName()
+                        + "(" + path.getFileName() + ")"
+                        + (background ? " in background " : " ")
+                        + "to our analysis...",
+                        AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN))));
 
-		long megabytes = Math.round((double) path.toFile().length() / 1024 / 1024);
-		if (megabytes > 100) {
-			new AttributedString("This is a big file. The size of this file is "
-					+ megabytes + " MB. This may take a while.",
-					AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))
-					.println(parent.getTerminal());
-			if (!background) {
-				new AttributedString("Consider using the `--background` option to load this file.",
-						AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED))
-						.println(parent.getTerminal());
-			}
-		}
-		if (background) {
-			new AttributedString("A message will be displayed when the loading finishes.",
-					AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.BLUE))
-					.println(parent.getTerminal());
-		}
+        long megabytes = Math.round((double) path.toFile().length() / 1024 / 1024);
+        if (megabytes > 100 && !background) {
+            new AttributedString("This is a big file. The size of this file is "
+                    + megabytes + " MB. This may take a while.",
+                    AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))
+                    .println(parent.getTerminal());
+            new AttributedString("Consider using the `--background` option to load this file.",
+                    AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED))
+                    .println(parent.getTerminal());
+        }
 
-		try (Scanner scanner = new Scanner(Files.newInputStream(path), StandardCharsets.UTF_8)) {
-			while (scanner.hasNextLine()) {
-				try {
-					consumer.accept(scanner.nextLine());
-				} catch (Exception e) {
-					//Silently fails, we don't care about weirdly formatted log lines that seem similar
-					//to other loglines that we know how to process
-				}
-			}
-			consumer.postProcessing();
-		} catch (Exception e) {
-			(new AttributedString("ERROR: Loading " + path.getFileName(),
-					AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED))).println(parent.getTerminal());
-			(new AttributedString(e.getMessage(),
-					AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED))).println(parent.getTerminal());
-		}
-
-		AttributedString attributedString = new AttributedString("File " + path.toAbsolutePath().getFileName()
-				+ " added in " + (System.currentTimeMillis() - time) + "ms.",
-				AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
-		attributedString.println(parent.getTerminal());
-	}
+        try (Scanner scanner = new Scanner(Files.newInputStream(path), StandardCharsets.UTF_8)) {
+            while (scanner.hasNextLine()) {
+                try {
+                    consumer.accept(scanner.nextLine());
+                } catch (Exception e) {
+                    //Silently fails, we don't care about weirdly formatted log lines that seem similar
+                    //to other loglines that we know how to process
+                }
+            }
+            consumer.postProcessing();
+            QuarkusPicocliLineApp.addStatusMessage(new StatusMessage(System.currentTimeMillis(),
+                    new AttributedString("File " + path.getFileName()
+                            + " added in " + (System.currentTimeMillis() - time) + "ms.",
+                            AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN))));
+        } catch (Exception e) {
+            QuarkusPicocliLineApp.addStatusMessage(new StatusMessage(System.currentTimeMillis(),
+                    new AttributedString("ERROR: Loading " + path.getFileName(),
+                            AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED))));
+        }
+    }
 
 	@Command(
 			version = "1.0",

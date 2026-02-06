@@ -2,6 +2,8 @@ package tooling.leyden.commands.logparser;
 
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
+import tooling.leyden.QuarkusPicocliLineApp;
+import tooling.leyden.StatusMessage;
 import tooling.leyden.aotcache.*;
 import tooling.leyden.commands.LoadFileCommand;
 
@@ -345,10 +347,11 @@ public class AOTMapParser extends Parser {
 			current = element;
 
 		} catch (Exception e) {
-			loadFile.getParent().getOut().println(
-					"ERROR at " + address + ": " + e.getClass() + " " +
+			QuarkusPicocliLineApp.addStatusMessage(new StatusMessage(System.currentTimeMillis(),
+					new AttributedString("ERROR at " + address + ": " + e.getClass() + " " +
 							e.getStackTrace()[0].getFileName() + e.getStackTrace()[0].getLineNumber()
-							+ " " + e.getMessage());
+							+ " " + e.getMessage(),
+							AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))));
 		}
 	}
 
