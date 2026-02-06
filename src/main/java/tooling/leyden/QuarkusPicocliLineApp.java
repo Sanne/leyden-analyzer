@@ -163,14 +163,40 @@ public class QuarkusPicocliLineApp implements Runnable, QuarkusApplication {
 	private void printBanner(Terminal terminal) {
 		AttributedStringBuilder builder = new AttributedStringBuilder();
 		builder.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN).bold())
-				.append("\n")
-				.append("◢◤ Leyden Analyzer ")
-				.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE))
-				.append("__________________________________________")
-				.append("\n\n");
+				.append(AttributedString.NEWLINE);
 
-		terminal.writer().println(builder.toAnsi());
-		terminal.flush();
+		var banner = """
+				            ██╗     ███████╗██╗   ██╗██████╗ ███████╗███╗   ██╗          \s
+				            ██║     ██╔════╝╚██╗ ██╔╝██╔══██╗██╔════╝████╗  ██║          \s
+				            ██║     █████╗   ╚████╔╝ ██║  ██║█████╗  ██╔██╗ ██║          \s
+				            ██║     ██╔══╝    ╚██╔╝  ██║  ██║██╔══╝  ██║╚██╗██║          \s
+				            ███████╗███████╗   ██║   ██████╔╝███████╗██║ ╚████║          \s
+				            ╚══════╝╚══════╝   ╚═╝   ╚═════╝ ╚══════╝╚═╝  ╚═══╝          \s
+				
+				 █████╗  ██████╗ ████████╗     ██████╗ █████╗  ██████╗██╗  ██╗███████╗   \s
+				██╔══██╗██╔═══██╗╚══██╔══╝    ██╔════╝██╔══██╗██╔════╝██║  ██║██╔════╝   \s
+				███████║██║   ██║   ██║       ██║     ███████║██║     ███████║█████╗     \s
+				██╔══██║██║   ██║   ██║       ██║     ██╔══██║██║     ██╔══██║██╔══╝     \s
+				██║  ██║╚██████╔╝   ██║       ╚██████╗██║  ██║╚██████╗██║  ██║███████╗   \s
+				╚═╝  ╚═╝ ╚═════╝    ╚═╝        ╚═════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝   \s
+				
+				     █████╗ ███╗   ██╗ █████╗ ██╗  ██╗   ██╗███████╗███████╗██████╗      \s
+				    ██╔══██╗████╗  ██║██╔══██╗██║  ╚██╗ ██╔╝╚══███╔╝██╔════╝██╔══██╗     \s
+				    ███████║██╔██╗ ██║███████║██║   ╚████╔╝   ███╔╝ █████╗  ██████╔╝     \s
+				    ██╔══██║██║╚██╗██║██╔══██║██║    ╚██╔╝   ███╔╝  ██╔══╝  ██╔══██╗     \s
+				    ██║  ██║██║ ╚████║██║  ██║███████╗██║   ███████╗███████╗██║  ██║     \s
+				    ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚═╝   ╚══════╝╚══════╝╚═╝  ╚═╝     \s
+				""";
+
+		builder.append(banner).append(AttributedString.NEWLINE);
+
+		builder.append("Use 'load' to add assets to the playground.")
+				.append(AttributedString.NEWLINE);
+
+		builder.append("Use 'help' to learn more commands.")
+				.append(AttributedString.NEWLINE);
+
+		builder.toAttributedString().println(terminal);
 	}
 
 	@Override
