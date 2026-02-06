@@ -50,6 +50,8 @@ public class LoadFileCommand implements Runnable {
 	private Thread.Builder builder = Thread.ofVirtual().name("loading-file-", 0);
 
 	public void run() {
+		parent.getOut().println(new CommandLine(this).getUsageMessage());
+
 	}
 
 	private void load(Parser consumer, Path... files) {

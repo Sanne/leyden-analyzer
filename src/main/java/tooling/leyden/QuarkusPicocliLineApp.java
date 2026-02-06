@@ -63,7 +63,7 @@ public class QuarkusPicocliLineApp implements Runnable, QuarkusApplication {
         }
 
         AttributedStringBuilder asb = new AttributedStringBuilder();
-        asb.append("Our Playground contains: ");
+        asb.append("Playground contains: ");
         asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN))
                 .append(information.getAll().size() + " assets");
         asb.style(AttributedStyle.DEFAULT).append(" | ");
@@ -97,9 +97,11 @@ public class QuarkusPicocliLineApp implements Runnable, QuarkusApplication {
 			PicocliCommands picocliCommands = new PicocliCommands(cmd);
 
 			Parser parser = new DefaultParser();
-			try (Terminal terminal = TerminalBuilder.builder().build()) {
+			try (Terminal terminal = TerminalBuilder.builder().nativeSignals(true)
+					.signalHandler(Terminal.SignalHandler.SIG_IGN).build()) {
 				// Display banner
 				printBanner(terminal);
+
 
 				SystemRegistry systemRegistry = new SystemRegistryImpl(parser, terminal, workDir, null);
 				systemRegistry.setCommandRegistries(builtins, picocliCommands);
